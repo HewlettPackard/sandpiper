@@ -17,11 +17,20 @@
 
 package org.apache.spark.graphx.lib.bp
 
+import org.apache.spark.LocalSparkContext
 import org.scalatest.FunSuite
 
-class UtilSuite  extends FunSuite{
+class UtilSuite  extends FunSuite with LocalSparkContext {
 
-  test("file read") {
-    org.apache.spark.lib.bp.Utils.loadLibDAI("C:\\ulanov\\work\\proj\\BP\\example\\graph7.fg")
+  test("local file read") {
+    val factors = Utils.loadLibDAI("data/factor/graph7.fg")
+    assert(factors.length == 7)
+  }
+
+  test("read file from RDD") {
+    withSpark { sc =>
+      val factorsRDD = Utils.loadLibDAIToRDD(sc, "c:/ulanov/dev/belief-propagation/data/factor")
+      assert(factorsRDD.count() == 7)
+    }
   }
 }

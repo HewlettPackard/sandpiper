@@ -15,22 +15,49 @@
  * limitations under the License.
  */
 
-package org.apache.spark.lib.bp
+package org.apache.spark.graphx.lib.bp
+
+import java.io.{FileInputStream, InputStream, InputStreamReader, BufferedReader}
+
+import org.apache.spark.{SparkConf, SparkContext}
+import org.apache.spark.rdd.RDD
 
 import scala.io.Source
 
 object Utils {
 
-  def loadLibDAI(path: String): Unit = {
-    var lines = Source.fromFile(path).getLines()
+  def main(args: Array[String]) = {
+    val conf = new SparkConf()
+    val sc = new SparkContext("local", "test", conf)
+    val files = sc.binaryFiles("c:/ulanov/tmp")
+    println(files.count)
+  }
+
+  def loadLibDAIToRDD(sc: SparkContext, path: String): RDD[FGVertex] = {
+    val files = sc.binaryFiles(path)
+    println(files.count())
+    sc.binaryFiles(path).flatMap { case (_, stream) =>
+        loadLibDAI(stream.open())
+    }
+  }
+
+  def loadLibDAI(fileName: String): Seq[FGVertex] = {
+    val inputStream = new FileInputStream(fileName)
+    loadLibDAI(inputStream)
+  }
+
+  def loadLibDAI(stream: InputStream): Seq[FGVertex] = {
+    var lines = Source.fromInputStream(stream).getLines()
     // read the number of factors in the file
     lines = lines.dropWhile(l => l.startsWith("#") || l.size < 1)
-    var numFactors = lines.next.toInt
+    val numFactors = lines.next.trim.toInt
+    val factors = new Array[FGVertex](numFactors)
     // read factors
-    while (numFactors > 0) {
+    var factorCounter = 0
+    while (factorCounter < numFactors) {
       // skip to the next block with factors
       lines = lines.dropWhile(l => l.startsWith("#") || l.size < 1)
-      val numVars = lines.next.toInt
+      val numVars = lines.next.trim.toInt
       lines = lines.dropWhile(_.startsWith("#"))
       val varIds = lines.next.split("\\s+").map(_.toInt)
       lines = lines.dropWhile(_.startsWith("#"))
@@ -45,7 +72,9 @@ object Utils {
         indexAndValues(nonZeroCounter) = (indexAndValue(0).toInt, indexAndValue(1).toDouble)
         nonZeroCounter += 1
       }
-      numFactors -= 1
+      factors(factorCounter) = new Factor(numVars, varIds, varNumValues, nonZeroNum, indexAndValues)
+      factorCounter += 1
     }
+    factors
   }
 }

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.spark.lib.bp
+package org.apache.spark.graphx.lib.bp
 
 trait FGVertex {
 
