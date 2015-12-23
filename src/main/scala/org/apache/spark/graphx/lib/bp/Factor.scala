@@ -17,11 +17,14 @@
 
 package org.apache.spark.graphx.lib.bp
 
-trait FGVertex {
+trait FGVertex
 
-}
-
-class Factor(varNum: Int, varIds: Array[Int], varNumValues: Array[Int], nonZeroNum: Int, indexAndValues: Array[(Int, Double)]) extends FGVertex {
+class Factor (
+  varNum: Int,
+  varIds: Array[Long],
+  varNumValues: Array[Int],
+  nonZeroNum: Int,
+  indexAndValues: Array[(Int, Double)]) extends FGVertex {
   private val values = new Array[Double](varNumValues.product)
   var i = 0
   while (i < indexAndValues.size) {
@@ -42,4 +45,4 @@ class Factor(varNum: Int, varIds: Array[Int], varNumValues: Array[Int], nonZeroN
 
 }
 
-case class Variable() extends FGVertex
+case class Variable (val id: Long) extends FGVertex

@@ -24,13 +24,23 @@ class UtilSuite  extends FunSuite with LocalSparkContext {
 
   test("local file read") {
     val factors = Utils.loadLibDAI("data/factor/graph7.fg")
-    assert(factors.length == 7)
+    val totalNum = factors.length
+    val numFactors = factors.count { vertex => vertex match {
+      case f: Factor => true
+      case _ => false
+    }}
+    assert(numFactors == 7 && totalNum == 11, "Graph7.fg contains 7 factors and 4 variables")
   }
 
   test("read file from RDD") {
     withSpark { sc =>
       val factorsRDD = Utils.loadLibDAIToRDD(sc, "c:/ulanov/dev/belief-propagation/data/factor")
-      assert(factorsRDD.count() == 7)
+      val totalNum = factorsRDD.count()
+      val numFactors = factorsRDD.map { vertex => vertex match {
+          case f: Factor => 1
+          case _ => 0
+        }}.sum().toLong
+      assert(numFactors == 7 && totalNum == 11, "Graph7.fg contains 7 factors and 4 variables")
     }
   }
 }
