@@ -34,7 +34,7 @@ class Factor(varNum: Int, varIds: Array[Int], varNumValues: Array[Int], nonZeroN
     // NB: leftmost index changes the fastest
     // NB: Wikipedia column-major order
     var offset = indices.last
-    for (i <- varNumValues.length - 1 to 0) {
+    for (i <- varNumValues.length - 1 to 1 by -1) {
       offset = indices(i - 1) + varNumValues(i - 1) * offset
     }
     values(offset)
