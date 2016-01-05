@@ -19,6 +19,7 @@ package org.apache.spark.graphx.lib.bp
 
 import java.io.{FileInputStream, InputStream, InputStreamReader, BufferedReader}
 
+import org.apache.spark.graphx.Edge
 import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.rdd.RDD
 
@@ -34,21 +35,22 @@ object Utils {
     println(files.count)
   }
 
-  def loadLibDAIToRDD(sc: SparkContext, path: String): RDD[FGVertex] = {
+  def loadLibDAIToRDD(sc: SparkContext, path: String): (RDD[FGVertex], RDD[Edge[Boolean]]) = {
     val files = sc.binaryFiles(path)
     println(files.count())
-    // TODO: remove duplicate variables if loaded from separate libDAI files
-    sc.binaryFiles(path).flatMap { case (_, stream) =>
+    val x = sc.binaryFiles(path).map { case (_, stream) =>
         loadLibDAI(stream.open())
     }
+    // TODO: refactor y => y
+    (x.keys.flatMap(y => y), x.values.flatMap(y => y))
   }
 
-  def loadLibDAI(fileName: String): Array[FGVertex] = {
+  def loadLibDAI(fileName: String): (Array[FGVertex], Array[Edge[Boolean]]) = {
     val inputStream = new FileInputStream(fileName)
     loadLibDAI(inputStream)
   }
 
-  def loadLibDAI(stream: InputStream): Array[FGVertex] = {
+  def loadLibDAI(stream: InputStream): (Array[FGVertex], Array[Edge[Boolean]]) = {
     val indexOffset = 100
     var lines = Source.fromInputStream(stream).getLines()
     // read the number of factors in the file
@@ -56,12 +58,15 @@ object Utils {
     val numFactors = lines.next.trim.toInt
     // TODO: check that this structure is OK and size estimation is fair enough
     val factorBuffer = new ArrayBuffer[FGVertex](numFactors * 2)
+    val edgeBuffer = new ArrayBuffer[Edge[Boolean]](numFactors * 10)
     // read factors
     var factorCounter = 0
     // TODO: add factor ids in source format as comment e.g. #222
     while (factorCounter < numFactors) {
       // skip to the next block with factors
-      lines = lines.dropWhile(l => l.startsWith("#") || l.size < 1)
+      lines = lines.dropWhile(l => !l.startsWith("###"))
+      val factorId = lines.next.split(" ")(1).trim.toLong
+      lines = lines.dropWhile(_.startsWith("#"))
       val varNum = lines.next.trim.toInt
       lines = lines.dropWhile(_.startsWith("#"))
       val varIds = lines.next.split("\\s+").map(_.toLong)
@@ -83,9 +88,13 @@ object Utils {
       if (varNum == 1) {
         factorBuffer += new Variable(varIds(0))
       }
-      // create edges
+      // create edges between Variables and Factor
+      for (varId <- varIds) {
+        edgeBuffer += Edge(varId, factorId, true)
+      }
+      // increment of factor counter
       factorCounter += 1
     }
-    factorBuffer.toArray
+    (factorBuffer.toArray, edgeBuffer.toArray)
   }
 }

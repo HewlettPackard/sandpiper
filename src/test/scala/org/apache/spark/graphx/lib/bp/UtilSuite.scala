@@ -23,7 +23,7 @@ import org.scalatest.FunSuite
 class UtilSuite  extends FunSuite with LocalSparkContext {
 
   test("local file read") {
-    val factors = Utils.loadLibDAI("data/factor/graph7.fg")
+    val (factors, _) = Utils.loadLibDAI("data/factor/graph7.fg")
     val totalNum = factors.length
     val numFactors = factors.count { vertex => vertex match {
       case f: Factor => true
@@ -34,7 +34,7 @@ class UtilSuite  extends FunSuite with LocalSparkContext {
 
   test("read file from RDD") {
     withSpark { sc =>
-      val factorsRDD = Utils.loadLibDAIToRDD(sc, "c:/ulanov/dev/belief-propagation/data/factor")
+      val (factorsRDD, _) = Utils.loadLibDAIToRDD(sc, "c:/ulanov/dev/belief-propagation/data/factor")
       val totalNum = factorsRDD.count()
       val numFactors = factorsRDD.map { vertex => vertex match {
           case f: Factor => 1
