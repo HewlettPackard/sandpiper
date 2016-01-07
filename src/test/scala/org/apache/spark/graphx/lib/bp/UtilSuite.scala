@@ -34,9 +34,9 @@ class UtilSuite  extends FunSuite with LocalSparkContext {
 
   test("read file from RDD") {
     withSpark { sc =>
-      val (factorsRDD, _) = Utils.loadLibDAIToRDD(sc, "c:/ulanov/dev/belief-propagation/data/factor")
-      val totalNum = factorsRDD.count()
-      val numFactors = factorsRDD.map { vertex => vertex match {
+      val graph = Utils.loadLibDAIToFactorGraph(sc, "c:/ulanov/dev/belief-propagation/data/factor")
+      val totalNum = graph.vertices.count()
+      val numFactors = graph.vertices.map { vertex => vertex._2 match {
           case f: Factor => 1
           case _ => 0
         }}.sum().toLong

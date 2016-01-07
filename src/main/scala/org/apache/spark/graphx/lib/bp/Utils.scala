@@ -19,7 +19,7 @@ package org.apache.spark.graphx.lib.bp
 
 import java.io.{FileInputStream, InputStream, InputStreamReader, BufferedReader}
 
-import org.apache.spark.graphx.Edge
+import org.apache.spark.graphx.{Graph, Edge}
 import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.rdd.RDD
 
@@ -35,30 +35,32 @@ object Utils {
     println(files.count)
   }
 
-  def loadLibDAIToRDD(sc: SparkContext, path: String): (RDD[FGVertex], RDD[Edge[Boolean]]) = {
+  def loadLibDAIToFactorGraph(sc: SparkContext, path: String): Graph[FGVertex, Boolean] = {
     val files = sc.binaryFiles(path)
     println(files.count())
     val x = sc.binaryFiles(path).map { case (_, stream) =>
         loadLibDAI(stream.open())
     }
-    // TODO: refactor y => y
-    (x.keys.flatMap(y => y), x.values.flatMap(y => y))
+    // TODO: refactor y => y, type of edge
+    val (vertices, edges) = (x.keys.flatMap(y => y).map(x => (x.id, x)),
+      x.values.flatMap(y => y).map(x => Edge(x._1, x._2, true)))
+    val graph = Graph(vertices, edges)
+    graph
   }
 
-  def loadLibDAI(fileName: String): (Array[FGVertex], Array[Edge[Boolean]]) = {
+  def loadLibDAI(fileName: String): (Array[FGVertex], Array[(Long, Long)]) = {
     val inputStream = new FileInputStream(fileName)
     loadLibDAI(inputStream)
   }
 
-  def loadLibDAI(stream: InputStream): (Array[FGVertex], Array[Edge[Boolean]]) = {
-    val indexOffset = 100
+  def loadLibDAI(stream: InputStream): (Array[FGVertex], Array[(Long, Long)]) = {
     var lines = Source.fromInputStream(stream).getLines()
     // read the number of factors in the file
     lines = lines.dropWhile(l => l.startsWith("#") || l.size < 1)
     val numFactors = lines.next.trim.toInt
     // TODO: check that this structure is OK and size estimation is fair enough
     val factorBuffer = new ArrayBuffer[FGVertex](numFactors * 2)
-    val edgeBuffer = new ArrayBuffer[Edge[Boolean]](numFactors * 10)
+    val edgeBuffer = new ArrayBuffer[(Long, Long)](numFactors * 10)
     // read factors
     var factorCounter = 0
     // TODO: add factor ids in source format as comment e.g. #222
@@ -83,14 +85,14 @@ object Utils {
         nonZeroCounter += 1
       }
       // create Factor vertex
-      factorBuffer += new Factor(varNum, varIds, varNumValues, nonZeroNum, indexAndValues)
+      factorBuffer += new Factor(factorId, varNum, varIds, varNumValues, nonZeroNum, indexAndValues)
       // create Variable vertex if factor has only one variable
       if (varNum == 1) {
         factorBuffer += new Variable(varIds(0))
       }
       // create edges between Variables and Factor
       for (varId <- varIds) {
-        edgeBuffer += Edge(varId, factorId, true)
+        edgeBuffer += new Tuple2(varId, factorId)
       }
       // increment of factor counter
       factorCounter += 1

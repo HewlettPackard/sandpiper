@@ -17,9 +17,12 @@
 
 package org.apache.spark.graphx.lib.bp
 
-trait FGVertex
+trait FGVertex {
+  val id: Long
+}
 
 class Factor (
+  val id: Long,
   varNum: Int,
   varIds: Array[Long],
   varNumValues: Array[Int],
