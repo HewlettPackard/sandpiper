@@ -43,4 +43,5 @@ class UtilSuite  extends FunSuite with LocalSparkContext {
       assert(numFactors == 7 && totalNum == 11, "Graph7.fg contains 7 factors and 4 variables")
     }
   }
+  // TODO: make test with reading several files
 }

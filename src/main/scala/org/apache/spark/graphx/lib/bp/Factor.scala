@@ -17,11 +17,13 @@
 
 package org.apache.spark.graphx.lib.bp
 
+import org.apache.spark.graphx.{Edge, Graph}
+
 trait FGVertex {
   val id: Long
 }
 
-class Factor (
+class Factor(
   val id: Long,
   varNum: Int,
   varIds: Array[Long],
@@ -48,4 +50,16 @@ class Factor (
 
 }
 
-case class Variable (val id: Long) extends FGVertex
+class Variable(val id: Long) extends FGVertex
+
+class Messages(val srcToDst: Array[Double], val dstToSrc: Array[Double])
+
+object FactorBP {
+
+  def apply(graph: Graph[FGVertex, Boolean]): Graph[FGVertex, Boolean] = {
+    // TODO: iterate with bpGraph.mapTriplets (compute and put new messages on edges)
+    val bpGraph = graph.mapEdges(edge => Edge(edge.srcId, edge.dstId, new Messages(null, null)))
+    // TODO: return beliefs as RDD[Beliefs] that can be computed at the end as message product
+    graph
+  }
+}
