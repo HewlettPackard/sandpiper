@@ -26,10 +26,11 @@ trait FGVertex {
 class Factor(
   val id: Long,
   varNum: Int,
-  varIds: Array[Long],
+  val varIds: Array[Long],
   varNumValues: Array[Int],
   nonZeroNum: Int,
   indexAndValues: Array[(Int, Double)]) extends FGVertex {
+
   private val values = new Array[Double](varNumValues.product)
   var i = 0
   while (i < indexAndValues.size) {
@@ -48,17 +49,37 @@ class Factor(
     values(offset)
   }
 
+  def length(varId: Long): Int = {
+    val index = varIds.indexOf(varId)
+    if (index == -1) -1 else varNumValues(index)
+  }
+
 }
 
 class Variable(val id: Long) extends FGVertex
 
-class Messages(val srcToDst: Array[Double], val dstToSrc: Array[Double])
+class Messages(val toDst: Array[Double], val toSrc: Array[Double])
 
 object FactorBP {
 
   def apply(graph: Graph[FGVertex, Boolean]): Graph[FGVertex, Boolean] = {
+    // put messages on edges, they will be mutated every iteration
+    val bpGraph = graph.mapTriplets { triplet =>
+      val srcId = triplet.srcAttr.id
+      val dstId = triplet.dstAttr.id
+      // find factor vertex on the triplet and get number of values for connected variable
+      val messageSize = triplet.srcAttr match {
+        case srcFactor: Factor => srcFactor.length(dstId)
+        case _ => triplet.dstAttr match {
+          case dstFactor: Factor => dstFactor.length(srcId)
+          case _=> 0
+        }
+      }
+      // put initial messages
+      new Messages(Array.fill[Double](messageSize)(1.0), Array.fill[Double](messageSize)(1.0))
+    }
     // TODO: iterate with bpGraph.mapTriplets (compute and put new messages on edges)
-    val bpGraph = graph.mapEdges(edge => Edge(edge.srcId, edge.dstId, new Messages(null, null)))
+
     // TODO: return beliefs as RDD[Beliefs] that can be computed at the end as message product
     graph
   }
