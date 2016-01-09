@@ -20,28 +20,28 @@ package org.apache.spark.graphx.lib.bp
 import org.apache.spark.LocalSparkContext
 import org.scalatest.FunSuite
 
-class UtilSuite extends FunSuite with LocalSparkContext {
+class BPSuite  extends FunSuite with LocalSparkContext {
 
-  test("local file read") {
-    val (factors, _) = Utils.loadLibDAI("data/factor/graph7.fg")
-    val totalNum = factors.length
-    val numFactors = factors.count { vertex => vertex match {
-      case f: Factor => true
-      case _ => false
-    }}
-    assert(numFactors == 7 && totalNum == 11, "Graph7.fg contains 7 factors and 4 variables")
-  }
-
-  test("read file from RDD") {
+  test ("BP graph test") {
     withSpark { sc =>
       val graph = Utils.loadLibDAIToFactorGraph(sc, "c:/ulanov/dev/belief-propagation/data/factor")
-      val totalNum = graph.vertices.count()
-      val numFactors = graph.vertices.map { vertex => vertex._2 match {
-          case f: Factor => 1
-          case _ => 0
-        }}.sum().toLong
-      assert(numFactors == 7 && totalNum == 11, "Graph7.fg contains 7 factors and 4 variables")
+      FactorBP.apply(graph)
     }
+
   }
-  // TODO: make test with reading several files
+
+// test ("index") {
+//  val values = Array[Double](0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11)
+//  val varNumValues = Array[Int](2, 3, 2)
+//   for (i <- 0 until values.length) {
+//     var product: Int = 1
+//     for (dim <- 0 until varNumValues.length - 1) {
+//       val dimValue = (i / product) % varNumValues(dim)
+//       product *= varNumValues(dim)
+//       print(dimValue)
+//     }
+//     println(i / product)
+//   }
+// }
+
 }

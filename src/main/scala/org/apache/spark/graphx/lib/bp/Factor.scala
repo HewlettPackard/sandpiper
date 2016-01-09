@@ -39,7 +39,7 @@ class Factor(
     i += 1
   }
 
-  def value(indices: Seq[Int]): Double = {
+  private def value(indices: Seq[Int]): Double = {
     // NB: leftmost index changes the fastest
     // NB: Wikipedia column-major order
     var offset = indices.last
@@ -49,9 +49,38 @@ class Factor(
     values(offset)
   }
 
+  /**
+   * Returns variable index in the values array by its ID
+   * @param varId variable ID
+   * @return index
+   */
+  private def varIndexById(varId: Long): Int = varIds.indexOf(varId)
+
+  /**
+   * Number of values for a variable
+   * @param varId variable id
+   * @return number of values
+   */
   def length(varId: Long): Int = {
-    val index = varIds.indexOf(varId)
+    val index = varIndexById(varId)
     if (index == -1) -1 else varNumValues(index)
+  }
+
+  def marginalize(varId: Long): Array[Double] = {
+    val index = varIndexById(varId)
+    require(index >= 0, "Index must be non-zero")
+    // K-dimensional marginalization
+    val result = new Array[Double](varNumValues(index))
+    for (i <- 0 until values.length) {
+      var product: Int = 1
+      for (dim <- 0 until varNumValues.length - 1) {
+        val dimValue = (i / product) % varNumValues(dim)
+        product *= varNumValues(dim)
+        print(dimValue)
+      }
+      println(i / product)
+    }
+    result
   }
 
 }
@@ -62,22 +91,29 @@ class Messages(val toDst: Array[Double], val toSrc: Array[Double])
 
 object FactorBP {
 
-  def apply(graph: Graph[FGVertex, Boolean]): Graph[FGVertex, Boolean] = {
+  def apply(graph: Graph[FGVertex, Boolean], maxIterations: Int = 50, maxDiff: Double = 1e-3): Graph[FGVertex, Boolean] = {
     // put messages on edges, they will be mutated every iteration
     val bpGraph = graph.mapTriplets { triplet =>
       val srcId = triplet.srcAttr.id
       val dstId = triplet.dstAttr.id
       // find factor vertex on the triplet and get number of values for connected variable
-      val messageSize = triplet.srcAttr match {
-        case srcFactor: Factor => srcFactor.length(dstId)
-        case _ => triplet.dstAttr match {
-          case dstFactor: Factor => dstFactor.length(srcId)
-          case _=> 0
+      val toDst = triplet.srcAttr match {
+        case srcFactor: Factor => srcFactor.marginalize(dstId)
+        case _ => null
         }
+      val toSrc =  triplet.dstAttr match {
+        case dstFactor: Factor => dstFactor.marginalize(srcId)
+        case _ => null
       }
       // put initial messages
-      new Messages(Array.fill[Double](messageSize)(1.0), Array.fill[Double](messageSize)(1.0))
+      new Messages(if (toDst != null) toDst else Array.fill[Double](toSrc.length)(1.0),
+        if (toSrc != null) toSrc else Array.fill[Double](toDst.length)(1.0))
     }
+    bpGraph.edges.collect.foreach(x =>
+      println(x.srcId + "-" + x.dstId +
+        " toSrc:"  + x.attr.toSrc.mkString(" ") + " toDst:" + x.attr.toDst.mkString(" ")))
+    // compute beliefs:
+
     // TODO: iterate with bpGraph.mapTriplets (compute and put new messages on edges)
 
     // TODO: return beliefs as RDD[Beliefs] that can be computed at the end as message product
