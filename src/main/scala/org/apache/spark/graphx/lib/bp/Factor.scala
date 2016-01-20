@@ -25,19 +25,9 @@ trait FGVertex {
 
 class Factor(
   val id: Long,
-  varNum: Int,
   val varIds: Array[Long],
-  varNumValues: Array[Int],
-  nonZeroNum: Int,
-  indexAndValues: Array[(Int, Double)]) extends FGVertex {
-
-  private val values = new Array[Double](varNumValues.product)
-  var i = 0
-  while (i < indexAndValues.size) {
-    val (index, value) = indexAndValues(i)
-    values(index) = value
-    i += 1
-  }
+  val varNumValues: Array[Int],
+  private val values: Array[Double]) extends FGVertex {
 
   private def value(indices: Seq[Int]): Double = {
     // NB: leftmost index changes the fastest
@@ -66,10 +56,19 @@ class Factor(
     if (index == -1) -1 else varNumValues(index)
   }
 
+  /**
+   * Total length of the factor in vector representation
+   * @return length
+   */
+  def length: Int = {
+    values.length
+  }
+
+  // TODO: call eliminate?
   def marginalize(varId: Long): Array[Double] = {
     val index = varIndexById(varId)
     require(index >= 0, "Index must be non-zero")
-    // K-dimensional marginalization
+    // K-dimensional marginalization / elimination
     val result = new Array[Double](varNumValues(index))
     for (i <- 0 until values.length) {
       var product: Int = 1
@@ -83,6 +82,61 @@ class Factor(
     result
   }
 
+  // TODO: do in-place or product & marginalize at once
+  def product(message: Array[Double], varId: Int): Unit = {
+    val index = varIndexById(varId)
+    require(index >= 0, "Index must be non-zero")
+    val result = new Array[Double](length)
+    for (i <- 0 until values.length) {
+      var product: Int = 1
+      for (dim <- 0 until varNumValues.length - 1) {
+        val dimValue = (i / product) % varNumValues(dim)
+        product *= varNumValues(dim)
+        print(dimValue)
+      }
+      println(i / product)
+    }
+    result
+  }
+}
+
+/**
+ * Fabric for factor creation
+ */
+object Factor {
+
+  def apply(
+  id: Long,
+  varIds: Array[Long],
+  varNumValues: Array[Int],
+  values: Array[Double]): Factor = {
+    new Factor(id, varIds, varNumValues, values)
+  }
+
+  /**
+   * Create factor from the libDAI description
+   * @param id unique id
+   * @param varIds ids of variables
+   * @param varNumValues num of variables states
+   * @param nonZeroNum num of nonzero values
+   * @param indexAndValues index and values
+   * @return factor
+   */
+  def apply(
+  id: Long,
+  varIds: Array[Long],
+  varNumValues: Array[Int],
+  nonZeroNum: Int,
+  indexAndValues: Array[(Int, Double)]): Factor = {
+    val values = new Array[Double](varNumValues.product)
+    var i = 0
+    while (i < indexAndValues.size) {
+      val (index, value) = indexAndValues(i)
+      values(index) = value
+      i += 1
+    }
+    new Factor(id, varIds, varNumValues, values)
+  }
 }
 
 class Variable(val id: Long) extends FGVertex

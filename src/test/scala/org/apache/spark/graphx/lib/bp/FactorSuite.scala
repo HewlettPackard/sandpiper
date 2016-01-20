@@ -20,28 +20,14 @@ package org.apache.spark.graphx.lib.bp
 import org.apache.spark.LocalSparkContext
 import org.scalatest.FunSuite
 
-class BPSuite extends FunSuite with LocalSparkContext {
+class FactorSuite extends FunSuite with LocalSparkContext {
 
-  test ("BP graph test") {
-    withSpark { sc =>
-      val graph = Utils.loadLibDAIToFactorGraph(sc, "c:/ulanov/dev/belief-propagation/data/factor")
-      FactorBP.apply(graph)
-    }
+  test("marginalize") {
 
   }
 
-// test ("index") {
-//  val values = Array[Double](0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11)
-//  val varNumValues = Array[Int](2, 3, 2)
-//   for (i <- 0 until values.length) {
-//     var product: Int = 1
-//     for (dim <- 0 until varNumValues.length - 1) {
-//       val dimValue = (i / product) % varNumValues(dim)
-//       product *= varNumValues(dim)
-//       print(dimValue)
-//     }
-//     println(i / product)
-//   }
-// }
+  test("product") {
+
+  }
 
 }
