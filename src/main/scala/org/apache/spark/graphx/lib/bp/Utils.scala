@@ -85,7 +85,7 @@ object Utils {
         nonZeroCounter += 1
       }
       // create Factor vertex
-      factorBuffer += Factor(factorId, varIds, varNumValues, nonZeroNum, indexAndValues)
+      factorBuffer += NamedFactor(factorId, varIds, varNumValues, nonZeroNum, indexAndValues)
       // create Variable vertex if factor has only one variable
       if (varNum == 1) {
         factorBuffer += new Variable(varIds(0))

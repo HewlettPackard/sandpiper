@@ -17,43 +17,16 @@
 
 package org.apache.spark.graphx.lib.bp
 
-import org.apache.spark.graphx.{Edge, Graph}
-
-trait FGVertex {
-  val id: Long
-}
-
-class Factor(
-  val id: Long,
-  val varIds: Array[Long],
-  val varNumValues: Array[Int],
-  private val values: Array[Double]) extends FGVertex {
+class Factor (val states: Array[Int], private val values: Array[Double]) {
 
   private def value(indices: Seq[Int]): Double = {
     // NB: leftmost index changes the fastest
     // NB: Wikipedia column-major order
     var offset = indices.last
-    for (i <- varNumValues.length - 1 to 1 by -1) {
-      offset = indices(i - 1) + varNumValues(i - 1) * offset
+    for (i <- states.length - 1 to 1 by -1) {
+      offset = indices(i - 1) + states(i - 1) * offset
     }
     values(offset)
-  }
-
-  /**
-   * Returns variable index in the values array by its ID
-   * @param varId variable ID
-   * @return index
-   */
-  private def varIndexById(varId: Long): Int = varIds.indexOf(varId)
-
-  /**
-   * Number of values for a variable
-   * @param varId variable id
-   * @return number of values
-   */
-  def length(varId: Long): Int = {
-    val index = varIndexById(varId)
-    if (index == -1) -1 else varNumValues(index)
   }
 
   /**
@@ -64,38 +37,42 @@ class Factor(
     values.length
   }
 
+  /**
+   * Number of states of a variable at index
+   * @param index index
+   * @return number of states
+   */
+  def length(index: Int): Int = {
+    states(index)
+  }
+
   // TODO: call eliminate?
-  def marginalize(varId: Long): Array[Double] = {
-    val index = varIndexById(varId)
-    require(index >= 0, "Index must be non-zero")
-    // K-dimensional marginalization / elimination
-    val result = new Array[Double](varNumValues(index))
+  def marginalize(index: Int): Array[Double] = {
+    require(index >= 0 && index < states.length, "Index must be non-zero && within shape")
+    val result = new Array[Double](states(index))
+    val product = states.slice(0, index).product
     for (i <- 0 until values.length) {
-      var product: Int = 1
-      for (dim <- 0 until varNumValues.length - 1) {
-        val dimValue = (i / product) % varNumValues(dim)
-        product *= varNumValues(dim)
-        print(dimValue)
-      }
-      println(i / product)
+      val indexInTargetDimension = (i / product) % states(index)
+      result(indexInTargetDimension) += values(i)
     }
     result
   }
 
   // TODO: do in-place or product & marginalize at once
-  def product(message: Array[Double], varId: Int): Unit = {
-    val index = varIndexById(varId)
+  def product(message: Array[Double], index: Int): Unit = {
     require(index >= 0, "Index must be non-zero")
+    require(states(index) == message.length,
+      "Number of states for variable and message must be equal")
     val result = new Array[Double](length)
-    for (i <- 0 until values.length) {
-      var product: Int = 1
-      for (dim <- 0 until varNumValues.length - 1) {
-        val dimValue = (i / product) % varNumValues(dim)
-        product *= varNumValues(dim)
-        print(dimValue)
-      }
-      println(i / product)
-    }
+//    for (i <- 0 until values.length) {
+//      var product: Int = 1
+//      for (dim <- 0 until varNumValues.length - 1) {
+//        val dimValue = (i / product) % varNumValues(dim)
+//        product *= varNumValues(dim)
+//        print(dimValue)
+//      }
+//      println(i / product)
+//    }
     result
   }
 }
@@ -105,72 +82,69 @@ class Factor(
  */
 object Factor {
 
-  def apply(
-  id: Long,
-  varIds: Array[Long],
-  varNumValues: Array[Int],
-  values: Array[Double]): Factor = {
-    new Factor(id, varIds, varNumValues, values)
+  def apply(states: Array[Int], values: Array[Double]): Factor = {
+    new Factor(states, values)
+  }
+}
+
+trait FGVertex {
+  val id: Long
+}
+
+class NamedFactor(val id: Long, private val variables: Array[Long], val factor: Factor) 
+  extends FGVertex {
+  /**
+   * Returns variable index in the values array by its ID
+   * @param varId variable ID
+   * @return index
+   */
+  private def varIndexById(varId: Long): Int = variables.indexOf(varId)
+
+  /**
+   * Number of values for a variable
+   * @param varId variable id
+   * @return number of values
+   */
+  def length(varId: Long): Int = {
+    val index = varIndexById(varId)
+    if (index == -1) -1 else factor.length(index)
   }
 
+  // TODO: call eliminate?
+  def marginalize(varId: Long): Array[Double] = {
+    val index = varIndexById(varId)
+    require(index >= 0, "Index must be non-zero")
+    factor.marginalize(index)
+  }
+}
+
+object NamedFactor {
   /**
    * Create factor from the libDAI description
    * @param id unique id
-   * @param varIds ids of variables
-   * @param varNumValues num of variables states
+   * @param variables ids of variables
+   * @param states num of variables states
    * @param nonZeroNum num of nonzero values
    * @param indexAndValues index and values
    * @return factor
    */
   def apply(
-  id: Long,
-  varIds: Array[Long],
-  varNumValues: Array[Int],
-  nonZeroNum: Int,
-  indexAndValues: Array[(Int, Double)]): Factor = {
-    val values = new Array[Double](varNumValues.product)
+             id: Long,
+             variables: Array[Long],
+             states: Array[Int],
+             nonZeroNum: Int,
+             indexAndValues: Array[(Int, Double)]): NamedFactor = {
+    val values = new Array[Double](states.product)
     var i = 0
     while (i < indexAndValues.size) {
       val (index, value) = indexAndValues(i)
       values(index) = value
       i += 1
     }
-    new Factor(id, varIds, varNumValues, values)
+    new NamedFactor(id, variables, Factor(states, values))
   }
 }
 
 class Variable(val id: Long) extends FGVertex
 
 class Messages(val toDst: Array[Double], val toSrc: Array[Double])
-
-object FactorBP {
-
-  def apply(graph: Graph[FGVertex, Boolean], maxIterations: Int = 50, maxDiff: Double = 1e-3): Graph[FGVertex, Boolean] = {
-    // put messages on edges, they will be mutated every iteration
-    val bpGraph = graph.mapTriplets { triplet =>
-      val srcId = triplet.srcAttr.id
-      val dstId = triplet.dstAttr.id
-      // find factor vertex on the triplet and get number of values for connected variable
-      val toDst = triplet.srcAttr match {
-        case srcFactor: Factor => srcFactor.marginalize(dstId)
-        case _ => null
-        }
-      val toSrc =  triplet.dstAttr match {
-        case dstFactor: Factor => dstFactor.marginalize(srcId)
-        case _ => null
-      }
-      // put initial messages
-      new Messages(if (toDst != null) toDst else Array.fill[Double](toSrc.length)(1.0),
-        if (toSrc != null) toSrc else Array.fill[Double](toDst.length)(1.0))
-    }
-    bpGraph.edges.collect.foreach(x =>
-      println(x.srcId + "-" + x.dstId +
-        " toSrc:"  + x.attr.toSrc.mkString(" ") + " toDst:" + x.attr.toDst.mkString(" ")))
-    // compute beliefs:
-
-    // TODO: iterate with bpGraph.mapTriplets (compute and put new messages on edges)
-
-    // TODO: return beliefs as RDD[Beliefs] that can be computed at the end as message product
-    graph
-  }
-}

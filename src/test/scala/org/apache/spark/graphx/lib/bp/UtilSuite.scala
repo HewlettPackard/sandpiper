@@ -26,7 +26,7 @@ class UtilSuite extends FunSuite with LocalSparkContext {
     val (factors, _) = Utils.loadLibDAI("data/factor/graph7.fg")
     val totalNum = factors.length
     val numFactors = factors.count { vertex => vertex match {
-      case f: Factor => true
+      case f: NamedFactor => true
       case _ => false
     }}
     assert(numFactors == 7 && totalNum == 11, "Graph7.fg contains 7 factors and 4 variables")
@@ -37,7 +37,7 @@ class UtilSuite extends FunSuite with LocalSparkContext {
       val graph = Utils.loadLibDAIToFactorGraph(sc, "c:/ulanov/dev/belief-propagation/data/factor")
       val totalNum = graph.vertices.count()
       val numFactors = graph.vertices.map { vertex => vertex._2 match {
-          case f: Factor => 1
+          case f: NamedFactor => 1
           case _ => 0
         }}.sum().toLong
       assert(numFactors == 7 && totalNum == 11, "Graph7.fg contains 7 factors and 4 variables")
