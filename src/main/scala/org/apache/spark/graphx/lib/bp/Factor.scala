@@ -17,7 +17,7 @@
 
 package org.apache.spark.graphx.lib.bp
 
-class Factor (val states: Array[Int], private val values: Array[Double]) {
+class Factor (val states: Array[Int], val values: Array[Double]) {
 
   private def value(indices: Seq[Int]): Double = {
     // NB: leftmost index changes the fastest
@@ -46,24 +46,39 @@ class Factor (val states: Array[Int], private val values: Array[Double]) {
     states(index)
   }
 
-  // TODO: call eliminate?
+  /**
+   * Marginalize factor by a variable
+   * @param index index of a variable
+   * @return marginal
+   */
   def marginalize(index: Int): Array[Double] = {
     require(index >= 0 && index < states.length, "Index must be non-zero && within shape")
     val result = new Array[Double](states(index))
     val product = states.slice(0, index).product
     for (i <- 0 until values.length) {
-      val indexInTargetDimension = (i / product) % states(index)
-      result(indexInTargetDimension) += values(i)
+      val indexInTargetState = (i / product) % states(index)
+      result(indexInTargetState) += values(i)
     }
     result
   }
 
-  // TODO: do in-place or product & marginalize at once
-  def product(message: Array[Double], index: Int): Unit = {
+  /**
+   * Product of a factor and a message
+   * @param message message to a variable
+   * @param index variable index
+   * @return new factor
+   */
+  def product(message: Array[Double], index: Int): Factor = {
     require(index >= 0, "Index must be non-zero")
     require(states(index) == message.length,
       "Number of states for variable and message must be equal")
     val result = new Array[Double](length)
+    val product = states.slice(0, index).product
+    for (i <- 0 until values.length) {
+      val indexInTargetState = (i / product) % states(index)
+      result(i) = values(i) * message(indexInTargetState)
+    }
+/* loops all dimension */
 //    for (i <- 0 until values.length) {
 //      var product: Int = 1
 //      for (dim <- 0 until varNumValues.length - 1) {
@@ -73,8 +88,29 @@ class Factor (val states: Array[Int], private val values: Array[Double]) {
 //      }
 //      println(i / product)
 //    }
+    Factor(states, result)
+  }
+
+  /**
+   * Marginal of a product of a factor and a message
+   * @param message message to a variable
+   * @param index index of a variable
+   * @return marginal
+   */
+  def marginalOfProduct(message: Array[Double], index: Int): Array[Double] = {
+    require(index >= 0, "Index must be non-zero")
+    require(states(index) == message.length,
+      "Number of states for variable and message must be equal")
+    val result = new Array[Double](states(index))
+    val product = states.slice(0, index).product
+    for (i <- 0 until values.length) {
+      val indexInTargetState = (i / product) % states(index)
+      result(indexInTargetState) += values(i) * message(indexInTargetState)
+    }
     result
   }
+
+
 }
 
 /**
