@@ -47,7 +47,7 @@ object BP {
         triplet.sendToDst(triplet.attr.toDst)
         triplet.sendToSrc(triplet.attr.toSrc)
       },
-      (m1, m2) => m1.multiply(m2),
+      (m1, m2) => m1.product(m2),
       TripletFields.EdgeOnly
     )
     //newAggMessages.collect.foreach(x => println(x._2.mkString(" ")))

@@ -23,7 +23,7 @@ import org.scalatest.FunSuite
 class FactorSuite extends FunSuite with LocalSparkContext {
 
   // TODO: add 3d factor test
-  test("marginalize") {
+  test("factor marginalize") {
     /*
     *       x1    margin over x0
     *       1 4    5
@@ -41,7 +41,7 @@ class FactorSuite extends FunSuite with LocalSparkContext {
       "Marginalization over the second variable is (6, 15)")
   }
 
-  test("product") {
+  test("factor product") {
     /*
     *       x1    msg to x0   product
     *       1 4    1           1 4
@@ -54,23 +54,32 @@ class FactorSuite extends FunSuite with LocalSparkContext {
     *                   3 12
     */
     val factor = Factor(Array(3, 2), Array(1, 2, 3, 4, 5, 6))
-    val product1 = factor.product(Array(1, 2, 3), 0)
-    assert(product1.values.deep == Array[Double](1, 4, 9, 4, 10, 18).deep,
+    val message1 = Variable(Array(1, 2, 3))
+    val product1 = factor.product(message1, 0)
+    assert(product1.cloneValues.deep == Array[Double](1, 4, 9, 4, 10, 18).deep,
       "Product should be (1, 4, 9, 1, 10, 18)")
-    val product2 = factor.product(Array(1, 2), 1)
-    assert(product2.values.deep == Array[Double](1, 2, 3, 8, 10, 12).deep,
+    val message2 = Variable(Array(1, 2))
+    val product2 = factor.product(message2, 1)
+    assert(product2.cloneValues.deep == Array[Double](1, 2, 3, 8, 10, 12).deep,
       "Product should be (1, 2, 3, 8, 10, 12)")
   }
 
   test("marginalize the product") {
     val factor = Factor(Array(3, 2), Array(1, 2, 3, 4, 5, 6))
-    val message1 = Array[Double](1, 2, 3)
+    val message1 = Variable(Array(1, 2, 3))
     val trueMargin1 = factor.product(message1, 0).marginalize(0)
     val margin1 = factor.marginalOfProduct(message1, 0)
     assert(trueMargin1.deep == margin1.deep)
-    val message2 = Array[Double](1, 2)
+    val message2 = Variable(Array(1, 2))
     val trueMargin2 = factor.product(message2, 1).marginalize(1)
     val margin2 = factor.marginalOfProduct(message2, 1)
     assert(trueMargin2.deep == margin2.deep)
+  }
+
+  test("variable product") {
+    val var1 = Variable(Array[Double](1, 2, 3))
+    val var2 = Variable(Array[Double](3, 4, 5))
+    val product = var1.product(var2)
+    assert(product.cloneValues.deep == Array[Double](3, 8, 15).deep, "Product must be (3, 8, 15)")
   }
 }

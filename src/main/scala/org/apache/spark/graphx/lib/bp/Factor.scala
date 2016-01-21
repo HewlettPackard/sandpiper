@@ -22,6 +22,22 @@ trait FGVertex {
   val id: Long
 }
 
+/**
+ *
+ * Representation of a factor
+ * Example how to loop through all variables
+ *  for (i <- 0 until values.length) {
+ *      var product: Int = 1
+ *     for (dim <- 0 until varNumValues.length - 1) {
+ *     val dimValue = (i / product) % varNumValues(dim)
+ *        product *= varNumValues(dim)
+ *        print(dimValue)
+ *      }
+ *      println(i / product)
+ *    }
+ * @param states number of states
+ * @param values values in vector format
+ */
 class Factor private (protected val states: Array[Int], protected val values: Array[Double]) {
 
   private def value(indices: Seq[Int]): Double = {
@@ -68,33 +84,68 @@ class Factor private (protected val states: Array[Int], protected val values: Ar
   }
 
   /**
-   * Product of a factor and a message
+   * Operation of a factor and a message
    * @param message message to a variable
    * @param index variable index
    * @return new factor
    */
-  def product(message: Array[Double], index: Int): Factor = {
+  protected def operation(
+  message: Variable,
+  index: Int, op: (Double, Double) => Double): Factor = {
     require(index >= 0, "Index must be non-zero")
-    require(states(index) == message.length,
+    require(states(index) == message.size,
       "Number of states for variable and message must be equal")
     val result = new Array[Double](length)
     val product = states.slice(0, index).product
     for (i <- 0 until values.length) {
       val indexInTargetState = (i / product) % states(index)
-      result(i) = values(i) * message(indexInTargetState)
+      result(i) = op(values(i), message.state(indexInTargetState))
     }
-/* loops all dimension */
-//    for (i <- 0 until values.length) {
-//      var product: Int = 1
-//      for (dim <- 0 until varNumValues.length - 1) {
-//        val dimValue = (i / product) % varNumValues(dim)
-//        product *= varNumValues(dim)
-//        print(dimValue)
-//      }
-//      println(i / product)
-//    }
     Factor(states, result)
   }
+
+  /**
+   * Product of a factor and a message
+   * @param message message to a variable
+   * @param index variable index
+   * @return new factor
+   */
+  def product(message: Variable, index: Int): Factor = {
+    operation(message, index, (x, y) => x * y)
+  }
+
+  /**
+   * Division of a factor and a message
+   * @param message message to a variable
+   * @param index variable index
+   * @return new factor
+   */
+  def division(message: Variable, index: Int): Factor = {
+    operation(message, index, (x, y) => x / y)
+  }
+
+  /**
+   * Marginal of a factor and a message operation
+   * @param message message to a variable
+   * @param index index of a variable
+   * @return marginal
+   */
+  def operationAndMarginal(
+  message: Variable,
+  index: Int,
+  op: (Double, Double) => Double): Array[Double] = {
+    require(index >= 0, "Index must be non-zero")
+    require(states(index) == message.size,
+      "Number of states for variable and message must be equal")
+    val result = new Array[Double](states(index))
+    val product = states.slice(0, index).product
+    for (i <- 0 until values.length) {
+      val indexInTargetState = (i / product) % states(index)
+      result(indexInTargetState) += op(values(i), message.state(indexInTargetState))
+    }
+    result
+  }
+
 
   /**
    * Marginal of a product of a factor and a message
@@ -102,17 +153,26 @@ class Factor private (protected val states: Array[Int], protected val values: Ar
    * @param index index of a variable
    * @return marginal
    */
-  def marginalOfProduct(message: Array[Double], index: Int): Array[Double] = {
-    require(index >= 0, "Index must be non-zero")
-    require(states(index) == message.length,
-      "Number of states for variable and message must be equal")
-    val result = new Array[Double](states(index))
-    val product = states.slice(0, index).product
-    for (i <- 0 until values.length) {
-      val indexInTargetState = (i / product) % states(index)
-      result(indexInTargetState) += values(i) * message(indexInTargetState)
-    }
-    result
+  def marginalOfProduct(message: Variable, index: Int): Array[Double] = {
+    operationAndMarginal(message, index, (x, y) => x * y)
+  }
+
+  /**
+   * Division of a product of a factor and a message
+   * @param message message to a variable
+   * @param index index of a variable
+   * @return marginal
+   */
+  def marginalOfDivision(message: Variable, index: Int): Array[Double] = {
+    operationAndMarginal(message, index, (x, y) => x / y)
+  }
+
+  /**
+   * Clone values
+   * @return values
+   */
+  def cloneValues: Array[Double] = {
+    values.clone()
   }
 }
 
@@ -198,20 +258,31 @@ class Variable private (protected val values: Array[Double]) {
   // TODO: come up with a single function for elementwise operations given a function
   val size = values.length
 
+  def state(index: Int): Double = values(index)
+
+  /**
+   * Operation on two variables
+   * @param other variable
+   * @return multiplication result
+   */
+  protected def operation(other: Variable, op: (Double, Double) => Double): Variable = {
+    require(this.size == other.size)
+    val result = new Array[Double](size)
+    var i = 0
+    while (i < size) {
+      result(i) = op(this.values(i), other.values(i))
+      i += 1
+    }
+    new Variable(result)
+  }
+
   /**
    * Multiply variables
    * @param other variable
    * @return multiplication result
    */
-  def multiply(other: Variable): Variable = {
-    require(this.size == other.size)
-    val result = new Array[Double](size)
-    var i = 0
-    while (i < size) {
-      result(i) = this.values(i) * other.values(i)
-      i += 1
-    }
-    new Variable(result)
+  def product(other: Variable): Variable = {
+    operation(other, (x, y) => x * y)
   }
 
   /**
@@ -220,18 +291,24 @@ class Variable private (protected val values: Array[Double]) {
    * @return division result
    */
   def divide(other: Variable): Variable = {
-    require(this.size == other.size)
-    val result = new Array[Double](size)
-    var i = 0
-    while (i < size) {
-      result(i) = this.values(i) / other.values(i)
-      i += 1
-    }
-    new Variable(result)
+    operation(other, (x, y) => x / y)
   }
 
+  /**
+   * Make string
+   * @param sep separator
+   * @return string representation
+   */
   def mkString(sep: String): String = {
     values.mkString(sep)
+  }
+
+  /**
+   * Clone values
+   * @return values
+   */
+  def cloneValues: Array[Double] = {
+    values.clone()
   }
 }
 
