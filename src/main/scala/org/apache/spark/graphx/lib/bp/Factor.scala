@@ -17,7 +17,12 @@
 
 package org.apache.spark.graphx.lib.bp
 
-class Factor (val states: Array[Int], val values: Array[Double]) {
+
+trait FGVertex {
+  val id: Long
+}
+
+class Factor private (protected val states: Array[Int], protected val values: Array[Double]) {
 
   private def value(indices: Seq[Int]): Double = {
     // NB: leftmost index changes the fastest
@@ -109,8 +114,6 @@ class Factor (val states: Array[Int], val values: Array[Double]) {
     }
     result
   }
-
-
 }
 
 /**
@@ -123,11 +126,7 @@ object Factor {
   }
 }
 
-trait FGVertex {
-  val id: Long
-}
-
-class NamedFactor(val id: Long, private val variables: Array[Long], val factor: Factor) 
+class NamedFactor(val id: Long, val variables: Array[Long], val factor: Factor, val belief: Factor)
   extends FGVertex {
   /**
    * Returns variable index in the values array by its ID
@@ -146,7 +145,11 @@ class NamedFactor(val id: Long, private val variables: Array[Long], val factor: 
     if (index == -1) -1 else factor.length(index)
   }
 
-  // TODO: call eliminate?
+  /**
+   * Marginalize given the variable
+   * @param varId variable id
+   * @return marginal
+   */
   def marginalize(varId: Long): Array[Double] = {
     val index = varIndexById(varId)
     require(index >= 0, "Index must be non-zero")
@@ -177,10 +180,72 @@ object NamedFactor {
       values(index) = value
       i += 1
     }
-    new NamedFactor(id, variables, Factor(states, values))
+    new NamedFactor(id, variables, Factor(states, values), Factor(states.clone(), values.clone()))
+  }
+
+  def apply(factor: NamedFactor): NamedFactor = {
+    // TODO: implement this
+    new NamedFactor(factor.id, factor.variables, factor.factor, factor.belief)
   }
 }
 
-class Variable(val id: Long) extends FGVertex
+/**
+ * Variable class
+ * @param values values
+ */
+class Variable private (protected val values: Array[Double]) {
 
-class Messages(val toDst: Array[Double], val toSrc: Array[Double])
+  // TODO: come up with a single function for elementwise operations given a function
+  val size = values.length
+
+  /**
+   * Multiply variables
+   * @param other variable
+   * @return multiplication result
+   */
+  def multiply(other: Variable): Variable = {
+    require(this.size == other.size)
+    val result = new Array[Double](size)
+    var i = 0
+    while (i < size) {
+      result(i) = this.values(i) * other.values(i)
+      i += 1
+    }
+    new Variable(result)
+  }
+
+  /**
+   * Divide variables
+   * @param other variable
+   * @return division result
+   */
+  def divide(other: Variable): Variable = {
+    require(this.size == other.size)
+    val result = new Array[Double](size)
+    var i = 0
+    while (i < size) {
+      result(i) = this.values(i) / other.values(i)
+      i += 1
+    }
+    new Variable(result)
+  }
+
+  def mkString(sep: String): String = {
+    values.mkString(sep)
+  }
+}
+
+object Variable {
+
+  def apply(values: Array[Double]): Variable = {
+    new Variable(values)
+  }
+
+  def fill(size: Int)(elem: => Double): Variable = {
+    new Variable(Array.fill[Double](size)(elem))
+  }
+}
+
+case class NamedVariable(val id: Long, val belief: Variable) extends FGVertex
+
+class Messages(val toDst: Variable, val toSrc: Variable)

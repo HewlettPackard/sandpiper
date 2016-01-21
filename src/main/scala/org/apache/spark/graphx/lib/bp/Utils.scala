@@ -88,7 +88,8 @@ object Utils {
       factorBuffer += NamedFactor(factorId, varIds, varNumValues, nonZeroNum, indexAndValues)
       // create Variable vertex if factor has only one variable
       if (varNum == 1) {
-        factorBuffer += new Variable(varIds(0))
+        // TODO: think if beliefs can be added later for the algorithm
+        factorBuffer += new NamedVariable(varIds(0), Variable.fill(varNumValues(0))(1.0))
       }
       // create edges between Variables and Factor
       for (varId <- varIds) {

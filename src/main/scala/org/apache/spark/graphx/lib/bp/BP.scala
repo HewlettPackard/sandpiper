@@ -17,7 +17,7 @@
 
 package org.apache.spark.graphx.lib.bp
 
-import org.apache.spark.graphx.Graph
+import org.apache.spark.graphx.{TripletFields, EdgeContext, Graph}
 
 object BP {
 
@@ -27,26 +27,50 @@ object BP {
       val srcId = triplet.srcAttr.id
       val dstId = triplet.dstAttr.id
       // find factor vertex on the triplet and get number of values for connected variable
-      val toDst = triplet.srcAttr match {
-        case srcFactor: NamedFactor => srcFactor.marginalize(dstId)
-        case _ => null
-      }
-      val toSrc =  triplet.dstAttr match {
-        case dstFactor: NamedFactor => dstFactor.marginalize(srcId)
-        case _ => null
+      val messageSize = triplet.srcAttr match {
+        case srcFactor: NamedFactor => srcFactor.length(dstId)
+        case _ => triplet.dstAttr match {
+          case dstFactor: NamedFactor => dstFactor.length(srcId)
+          case _ => 0 // TODO: that should not happen. Throw an exception?
+        }
       }
       // put initial messages
-      new Messages(if (toDst != null) toDst else Array.fill[Double](toSrc.length)(1.0),
-        if (toSrc != null) toSrc else Array.fill[Double](toDst.length)(1.0))
+      val toDst = Variable.fill(messageSize)(1.0)
+      val toSrc = Variable.fill(messageSize)(1.0)
+      new Messages(toDst, toSrc)
     }
-    bpGraph.edges.collect.foreach(x =>
-      println(x.srcId + "-" + x.dstId +
-        " toSrc:"  + x.attr.toSrc.mkString(" ") + " toDst:" + x.attr.toDst.mkString(" ")))
+    printGraph(bpGraph)
     // compute beliefs:
+
+    val newAggMessages = bpGraph.aggregateMessages[Variable](
+      triplet => {
+        triplet.sendToDst(triplet.attr.toDst)
+        triplet.sendToSrc(triplet.attr.toSrc)
+      },
+      (m1, m2) => m1.multiply(m2),
+      TripletFields.EdgeOnly
+    )
+    //newAggMessages.collect.foreach(x => println(x._2.mkString(" ")))
+    val newGraph = bpGraph.joinVertices(newAggMessages) {
+      (id, attr, msg) => {
+        attr match {
+            // TODO: do smth with variables
+          case factor: NamedFactor => NamedFactor(factor)
+          case variable: NamedVariable => NamedVariable(variable.id, variable.belief)
+        }
+      }
+    }
 
     // TODO: iterate with bpGraph.mapTriplets (compute and put new messages on edges)
 
     // TODO: return beliefs as RDD[Beliefs] that can be computed at the end as message product
     graph
+  }
+
+  def printGraph(graph: Graph[FGVertex, Messages]): Unit = {
+    graph.edges.collect.foreach(x =>
+      println(x.srcId + "-" + x.dstId +
+        " toSrc:"  + x.attr.toSrc.mkString(" ") + " toDst:" + x.attr.toDst.mkString(" ")))
+
   }
 }
