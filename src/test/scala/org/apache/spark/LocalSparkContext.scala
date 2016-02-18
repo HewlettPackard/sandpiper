@@ -17,6 +17,7 @@
 
 package org.apache.spark
 
+import org.apache.log4j.{Logger, Level}
 import org.apache.spark.graphx.GraphXUtils
 
 /**
@@ -29,6 +30,9 @@ trait LocalSparkContext {
     val conf = new SparkConf()
     GraphXUtils.registerKryoClasses(conf)
     val sc = new SparkContext("local", "test", conf)
+    Logger.getLogger("org").setLevel(Level.OFF)
+    Logger.getLogger("akka").setLevel(Level.OFF)
+
     try {
       f(sc)
     } finally {

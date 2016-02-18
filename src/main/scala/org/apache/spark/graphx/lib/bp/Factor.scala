@@ -20,6 +20,8 @@ package org.apache.spark.graphx.lib.bp
 
 trait FGVertex {
   val id: Long
+  def mkString(): String
+  def processMessage(aggMessage: List[Message]): FGVertex
 }
 
 /**
@@ -35,6 +37,7 @@ trait FGVertex {
  *      }
  *      println(i / product)
  *    }
+ *
  * @param states number of states
  * @param values values in vector format
  */
@@ -52,6 +55,7 @@ class Factor private (protected val states: Array[Int], protected val values: Ar
 
   /**
    * Total length of the factor in vector representation
+ *
    * @return length
    */
   def length: Int = {
@@ -60,6 +64,7 @@ class Factor private (protected val states: Array[Int], protected val values: Ar
 
   /**
    * Number of states of a variable at index
+ *
    * @param index index
    * @return number of states
    */
@@ -69,6 +74,7 @@ class Factor private (protected val states: Array[Int], protected val values: Ar
 
   /**
    * Marginalize factor by a variable
+ *
    * @param index index of a variable
    * @return marginal
    */
@@ -85,6 +91,7 @@ class Factor private (protected val states: Array[Int], protected val values: Ar
 
   /**
    * Operation of a factor and a message
+ *
    * @param message message to a variable
    * @param index variable index
    * @return new factor
@@ -106,6 +113,7 @@ class Factor private (protected val states: Array[Int], protected val values: Ar
 
   /**
    * Product of a factor and a message
+ *
    * @param message message to a variable
    * @param index variable index
    * @return new factor
@@ -116,6 +124,7 @@ class Factor private (protected val states: Array[Int], protected val values: Ar
 
   /**
    * Division of a factor and a message
+ *
    * @param message message to a variable
    * @param index variable index
    * @return new factor
@@ -126,6 +135,7 @@ class Factor private (protected val states: Array[Int], protected val values: Ar
 
   /**
    * Marginal of a factor and a message operation
+ *
    * @param message message to a variable
    * @param index index of a variable
    * @return marginal
@@ -149,6 +159,7 @@ class Factor private (protected val states: Array[Int], protected val values: Ar
 
   /**
    * Marginal of a product of a factor and a message
+ *
    * @param message message to a variable
    * @param index index of a variable
    * @return marginal
@@ -159,6 +170,7 @@ class Factor private (protected val states: Array[Int], protected val values: Ar
 
   /**
    * Division of a product of a factor and a message
+ *
    * @param message message to a variable
    * @param index index of a variable
    * @return marginal
@@ -169,10 +181,15 @@ class Factor private (protected val states: Array[Int], protected val values: Ar
 
   /**
    * Clone values
+ *
    * @return values
    */
   def cloneValues: Array[Double] = {
     values.clone()
+  }
+
+  def mkString(): String = {
+    "states: " + states.mkString(" ") + ", values: " + values.mkString(" ")
   }
 }
 
@@ -190,36 +207,61 @@ class NamedFactor(val id: Long, val variables: Array[Long], val factor: Factor, 
   extends FGVertex {
   /**
    * Returns variable index in the values array by its ID
-   * @param varId variable ID
+    *
+    * @param varId variable ID
    * @return index
    */
-  private def varIndexById(varId: Long): Int = variables.indexOf(varId)
+  private def varIndexById(varId: Long): Int = {
+    val index = variables.indexOf(varId)
+    require(index >= 0, "Variable not found in factor")
+    index
+  }
 
   /**
-   * Number of values for a variable
+    * Number of values for a variable
+ *
    * @param varId variable id
    * @return number of values
    */
   def length(varId: Long): Int = {
     val index = varIndexById(varId)
-    if (index == -1) -1 else factor.length(index)
+    factor.length(index)
   }
 
   /**
-   * Marginalize given the variable
+    * Marginalize given the variable
+ *
    * @param varId variable id
    * @return marginal
    */
   def marginalize(varId: Long): Array[Double] = {
     val index = varIndexById(varId)
-    require(index >= 0, "Index must be non-zero")
     factor.marginalize(index)
+  }
+
+  def mkString(): String = {
+    "id: " + id.toString() + ", factor: " + factor.mkString() + ", belief: " + belief.mkString()
+  }
+
+  override def processMessage(aggMessage: List[Message]): FGVertex = {
+    var newBelief = factor
+    for(message <- aggMessage) {
+      val index = varIndexById(message.srcId)
+      newBelief = newBelief.product(message.message, index)
+    }
+    NamedFactor(id, variables, factor, newBelief)
   }
 }
 
 object NamedFactor {
+
+  def apply(id: Long, variables: Array[Long], factor: Factor, belief: Factor): NamedFactor = {
+    new NamedFactor(id, variables, factor, belief)
+  }
+
   /**
    * Create factor from the libDAI description
+ *
    * @param id unique id
    * @param variables ids of variables
    * @param states num of variables states
@@ -251,6 +293,7 @@ object NamedFactor {
 
 /**
  * Variable class
+ *
  * @param values values
  */
 class Variable private (protected val values: Array[Double]) {
@@ -262,6 +305,7 @@ class Variable private (protected val values: Array[Double]) {
 
   /**
    * Operation on two variables
+ *
    * @param other variable
    * @return multiplication result
    */
@@ -278,6 +322,7 @@ class Variable private (protected val values: Array[Double]) {
 
   /**
    * Multiply variables
+ *
    * @param other variable
    * @return multiplication result
    */
@@ -287,6 +332,7 @@ class Variable private (protected val values: Array[Double]) {
 
   /**
    * Divide variables
+ *
    * @param other variable
    * @return division result
    */
@@ -296,15 +342,16 @@ class Variable private (protected val values: Array[Double]) {
 
   /**
    * Make string
-   * @param sep separator
+ *
    * @return string representation
    */
-  def mkString(sep: String): String = {
-    values.mkString(sep)
+  def mkString(): String = {
+    values.mkString(" ")
   }
 
   /**
    * Clone values
+ *
    * @return values
    */
   def cloneValues: Array[Double] = {
@@ -323,6 +370,17 @@ object Variable {
   }
 }
 
-case class NamedVariable(val id: Long, val belief: Variable) extends FGVertex
+case class NamedVariable(val id: Long, val belief: Variable) extends FGVertex {
+  override def processMessage(aggMessage: List[Message]): FGVertex = {
+    NamedVariable(id, belief.product(aggMessage(0).message))
+  }
 
-class Messages(val toDst: Variable, val toSrc: Variable)
+  def mkString(): String = {
+    "id: " + id + ", belief: " + belief.mkString()
+  }
+}
+
+// TODO: reuse NamedVariable class
+case class Message(val srcId: Long, val message: Variable)
+
+class FGEdge(val toDst: Message, val toSrc: Message)

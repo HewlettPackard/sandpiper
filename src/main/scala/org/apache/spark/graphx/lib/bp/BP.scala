@@ -19,6 +19,9 @@ package org.apache.spark.graphx.lib.bp
 
 import org.apache.spark.graphx.{TripletFields, EdgeContext, Graph}
 
+import scala.collection.mutable
+import scala.collection.mutable.ListBuffer
+
 object BP {
 
   def apply(graph: Graph[FGVertex, Boolean], maxIterations: Int = 50, maxDiff: Double = 1e-3): Graph[FGVertex, Boolean] = {
@@ -35,31 +38,36 @@ object BP {
         }
       }
       // put initial messages
-      val toDst = Variable.fill(messageSize)(1.0)
-      val toSrc = Variable.fill(messageSize)(1.0)
-      new Messages(toDst, toSrc)
+      val toDst = Message(srcId, Variable.fill(messageSize)(1.0))
+      val toSrc = Message(dstId, Variable.fill(messageSize)(1.0))
+      new FGEdge(toDst, toSrc)
     }
-    printGraph(bpGraph)
+    printEdges(bpGraph)
     // compute beliefs:
 
-    val newAggMessages = bpGraph.aggregateMessages[Variable](
+    // messages to variables are merged as a product, messages to factors are merged as lists
+    val newAggMessages = bpGraph.aggregateMessages[List[Message]](
       triplet => {
-        triplet.sendToDst(triplet.attr.toDst)
-        triplet.sendToSrc(triplet.attr.toSrc)
+        triplet.sendToDst(List(triplet.attr.toDst))
+        triplet.sendToSrc(List(triplet.attr.toSrc))
       },
-      (m1, m2) => m1.product(m2),
+      // TODO: extract Merge into the new AggregatedMessage class and use mutable structures
+      (m1, m2) => {
+        println(m1.length + " " + m2.length)
+        if (m1(0).srcId == m2(0).srcId) {
+          List(Message(m1(0).srcId, m1(0).message.product(m2(0).message)))
+        } else {
+          m1 ++ m2
+        }
+      },
       TripletFields.EdgeOnly
     )
-    //newAggMessages.collect.foreach(x => println(x._2.mkString(" ")))
+    println(newAggMessages.count())
     val newGraph = bpGraph.joinVertices(newAggMessages) {
-      (id, attr, msg) => {
-        attr match {
-            // TODO: do smth with variables
-          case factor: NamedFactor => NamedFactor(factor)
-          case variable: NamedVariable => NamedVariable(variable.id, variable.belief)
-        }
-      }
+      (id, attr, msg) => attr.processMessage(msg)
     }
+    newGraph.edges.foreachPartition( x => {})
+    printVertices(newGraph)
 
     // TODO: iterate with bpGraph.mapTriplets (compute and put new messages on edges)
 
@@ -67,10 +75,14 @@ object BP {
     graph
   }
 
-  def printGraph(graph: Graph[FGVertex, Messages]): Unit = {
+  def printEdges(graph: Graph[FGVertex, FGEdge]): Unit = {
     graph.edges.collect.foreach(x =>
       println(x.srcId + "-" + x.dstId +
-        " toSrc:"  + x.attr.toSrc.mkString(" ") + " toDst:" + x.attr.toDst.mkString(" ")))
+        " toSrc:"  + x.attr.toSrc.message.mkString() + " toDst:" + x.attr.toDst.message.mkString()))
 
+  }
+
+  def printVertices(graph: Graph[FGVertex, FGEdge]): Unit = {
+    graph.vertices.collect.foreach { case (vid, vertex) => println(vertex.mkString())}
   }
 }
