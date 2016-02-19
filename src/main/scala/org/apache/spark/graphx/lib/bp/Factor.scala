@@ -22,6 +22,7 @@ trait FGVertex {
   val id: Long
   def mkString(): String
   def processMessage(aggMessage: List[Message]): FGVertex
+  def message(oldMessage: Message): Message
 }
 
 /**
@@ -251,6 +252,11 @@ class NamedFactor(val id: Long, val variables: Array[Long], val factor: Factor, 
     }
     NamedFactor(id, variables, factor, newBelief)
   }
+
+  override def message(oldMessage: Message): Message = {
+    val index = varIndexById(oldMessage.srcId)
+    return Message(this.id, Variable(belief.marginalOfDivision(oldMessage.message, index)))
+  }
 }
 
 object NamedFactor {
@@ -372,7 +378,13 @@ object Variable {
 
 case class NamedVariable(val id: Long, val belief: Variable) extends FGVertex {
   override def processMessage(aggMessage: List[Message]): FGVertex = {
+    println("belief update")
+    println("id: " + id + " belief: " + belief.mkString() + " prod id: " + aggMessage(0).srcId + " " + aggMessage(0).message.mkString())
     NamedVariable(id, belief.product(aggMessage(0).message))
+  }
+
+  override def message(oldMessage: Message): Message = {
+    Message(this.id, belief.divide(oldMessage.message))
   }
 
   def mkString(): String = {
@@ -381,6 +393,11 @@ case class NamedVariable(val id: Long, val belief: Variable) extends FGVertex {
 }
 
 // TODO: reuse NamedVariable class
-case class Message(val srcId: Long, val message: Variable)
+//trait Message {
+//  def merge(other: Message): Message
+//}
+
+case class Message(val srcId: Long, val message: Variable) {
+}
 
 class FGEdge(val toDst: Message, val toSrc: Message)

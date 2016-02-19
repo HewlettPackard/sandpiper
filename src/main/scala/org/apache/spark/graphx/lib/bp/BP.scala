@@ -17,16 +17,13 @@
 
 package org.apache.spark.graphx.lib.bp
 
-import org.apache.spark.graphx.{TripletFields, EdgeContext, Graph}
-
-import scala.collection.mutable
-import scala.collection.mutable.ListBuffer
+import org.apache.spark.graphx.{TripletFields, Graph}
 
 object BP {
 
   def apply(graph: Graph[FGVertex, Boolean], maxIterations: Int = 50, maxDiff: Double = 1e-3): Graph[FGVertex, Boolean] = {
     // put messages on edges, they will be mutated every iteration
-    val bpGraph = graph.mapTriplets { triplet =>
+    var newGraph = graph.mapTriplets { triplet =>
       val srcId = triplet.srcAttr.id
       val dstId = triplet.dstAttr.id
       // find factor vertex on the triplet and get number of values for connected variable
@@ -42,33 +39,49 @@ object BP {
       val toSrc = Message(dstId, Variable.fill(messageSize)(1.0))
       new FGEdge(toDst, toSrc)
     }
-    printEdges(bpGraph)
-    // compute beliefs:
+    var oldGraph = newGraph
+    printEdges(newGraph)
+    // main algorithm loop:
+    var iter = 0
+    while (iter < maxIterations) {
 
-    // messages to variables are merged as a product, messages to factors are merged as lists
-    val newAggMessages = bpGraph.aggregateMessages[List[Message]](
-      triplet => {
-        triplet.sendToDst(List(triplet.attr.toDst))
-        triplet.sendToSrc(List(triplet.attr.toSrc))
-      },
-      // TODO: extract Merge into the new AggregatedMessage class and use mutable structures
-      (m1, m2) => {
-        println(m1.length + " " + m2.length)
-        if (m1(0).srcId == m2(0).srcId) {
-          List(Message(m1(0).srcId, m1(0).message.product(m2(0).message)))
-        } else {
-          m1 ++ m2
-        }
-      },
-      TripletFields.EdgeOnly
-    )
-    println(newAggMessages.count())
-    val newGraph = bpGraph.joinVertices(newAggMessages) {
-      (id, attr, msg) => attr.processMessage(msg)
+      // messages to variables are merged as a product, messages to factors are merged as lists
+      val newAggMessages = newGraph.aggregateMessages[List[Message]](
+        triplet => {
+          triplet.sendToDst(List(triplet.attr.toDst))
+          triplet.sendToSrc(List(triplet.attr.toSrc))
+        },
+        // TODO: extract Merge into the new AggregatedMessage class and use mutable structures
+        (m1, m2) => {
+          // TODO: fix merge - merge if to variables, list if to factors
+          println(m1.length + " " + m2.length + " from1:" + m1(0).srcId + " from2:" + m2(0).srcId)
+          if (m1(0).srcId == m2(0).srcId) {
+            println("aggMsg")
+            println("from " + m1(0).srcId + " contents:" + m1(0).message)
+            println("from " + m2(0).srcId + " contents:" + m2(0).message)
+            List(Message(m1(0).srcId, m1(0).message.product(m2(0).message)))
+          } else {
+            m1 ++ m2
+          }
+        },
+        TripletFields.EdgeOnly
+      )
+      println(newAggMessages.count())
+      val graphWithNewVertices = newGraph.joinVertices(newAggMessages) {
+        (id, attr, msg) => attr.processMessage(msg)
+      }
+      graphWithNewVertices.edges.foreachPartition(x => {})
+      printVertices(graphWithNewVertices)
+      oldGraph = newGraph
+      newGraph = graphWithNewVertices.mapTriplets { triplet =>
+        val toSrc = triplet.dstAttr.message(triplet.attr.toDst)
+        val toDst = triplet.srcAttr.message(triplet.attr.toSrc)
+        new FGEdge(toDst, toSrc)
+      }
+      newGraph.edges.foreach(x => {})
+      printEdges(newGraph)
+      iter += 1
     }
-    newGraph.edges.foreachPartition( x => {})
-    printVertices(newGraph)
-
     // TODO: iterate with bpGraph.mapTriplets (compute and put new messages on edges)
 
     // TODO: return beliefs as RDD[Beliefs] that can be computed at the end as message product
