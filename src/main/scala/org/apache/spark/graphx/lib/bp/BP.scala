@@ -26,19 +26,33 @@ object BP {
     var newGraph = graph.mapTriplets { triplet =>
       val srcId = triplet.srcAttr.id
       val dstId = triplet.dstAttr.id
+      var fromFactor = true
       // find factor vertex on the triplet and get number of values for connected variable
       val messageSize = triplet.srcAttr match {
         case srcFactor: NamedFactor => srcFactor.length(dstId)
         case _ => triplet.dstAttr match {
-          case dstFactor: NamedFactor => dstFactor.length(srcId)
+          case dstFactor: NamedFactor =>
+            fromFactor = false
+            dstFactor.length(srcId)
           case _ => 0 // TODO: that should not happen. Throw an exception?
         }
       }
       // put initial messages
-      val toDst = Message(srcId, Variable.fill(messageSize)(1.0))
-      val toSrc = Message(dstId, Variable.fill(messageSize)(1.0))
-      new FGEdge(toDst, toSrc)
+        val toDst = Message(srcId, Variable.fill(messageSize)(1.0), fromFactor)
+        val toSrc = Message(dstId, Variable.fill(messageSize)(1.0), !fromFactor)
+        new FGEdge(toDst, toSrc)
+//      // put initial messages
+//      if (dstId == 8) {
+//        val toDst = Message(srcId, Variable.fill(messageSize)(1.0), fromFactor)
+//        val toSrc = Message(dstId, Variable(Array(1.0, 0.0)), !fromFactor)
+//        new FGEdge(toDst, toSrc)
+//      } else {
+//        val toDst = Message(srcId, Variable.fill(messageSize)(1.0), fromFactor)
+//        val toSrc = Message(dstId, Variable.fill(messageSize)(1.0), !fromFactor)
+//        new FGEdge(toDst, toSrc)
+//      }
     }
+
     var oldGraph = newGraph
     printEdges(newGraph)
     // main algorithm loop:
@@ -55,12 +69,15 @@ object BP {
         (m1, m2) => {
           // TODO: fix merge - merge if to variables, list if to factors
           println(m1.length + " " + m2.length + " from1:" + m1(0).srcId + " from2:" + m2(0).srcId)
-          if (m1(0).srcId == m2(0).srcId) {
+          if (m1(0).fromFactor && m2(0).fromFactor) {
             println("aggMsg")
-            println("from " + m1(0).srcId + " contents:" + m1(0).message)
-            println("from " + m2(0).srcId + " contents:" + m2(0).message)
-            List(Message(m1(0).srcId, m1(0).message.product(m2(0).message)))
+            println("from " + m1(0).srcId + " contents:" + m1(0).message.mkString() + " " + m1(0).fromFactor)
+            println("from " + m2(0).srcId + " contents:" + m2(0).message.mkString() + " " + m1(0).fromFactor)
+            List(Message(m1(0).srcId, m1(0).message.product(m2(0).message), true))
           } else {
+            println("++Msg")
+            println("from " + m1(0).srcId + " contents:" + m1(0).message.mkString() + " " + m1(0).fromFactor)
+            println("from " + m2(0).srcId + " contents:" + m2(0).message.mkString() + " " + m1(0).fromFactor)
             m1 ++ m2
           }
         },
@@ -91,7 +108,8 @@ object BP {
   def printEdges(graph: Graph[FGVertex, FGEdge]): Unit = {
     graph.edges.collect.foreach(x =>
       println(x.srcId + "-" + x.dstId +
-        " toSrc:"  + x.attr.toSrc.message.mkString() + " toDst:" + x.attr.toDst.message.mkString()))
+        " toSrc:" + x.attr.toSrc.message.mkString() + " " + x.attr.toSrc.fromFactor +
+        " toDst:" + x.attr.toDst.message.mkString() + " " + x.attr.toDst.fromFactor))
 
   }
 

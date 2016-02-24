@@ -245,6 +245,10 @@ class NamedFactor(val id: Long, val variables: Array[Long], val factor: Factor, 
   }
 
   override def processMessage(aggMessage: List[Message]): FGVertex = {
+    // TODO: fix this uglyness (don't process messages to factors with 1 variable
+    if (this.variables.length == 1) {
+      return this
+    }
     var newBelief = factor
     for(message <- aggMessage) {
       val index = varIndexById(message.srcId)
@@ -254,8 +258,17 @@ class NamedFactor(val id: Long, val variables: Array[Long], val factor: Factor, 
   }
 
   override def message(oldMessage: Message): Message = {
+    // TODO: fix this uglyness (don't use old message to send new)
+    if (this.variables.length == 1) {
+      val index = varIndexById(oldMessage.srcId)
+      val newMessage = Variable(belief.marginalize(index))
+      newMessage.normalize()
+      return Message(this.id, newMessage, true)
+    }
     val index = varIndexById(oldMessage.srcId)
-    return Message(this.id, Variable(belief.marginalOfDivision(oldMessage.message, index)))
+    val newMessage = Variable(belief.marginalOfDivision(oldMessage.message, index))
+    newMessage.normalize()
+    return Message(this.id, newMessage, true)
   }
 }
 
@@ -288,7 +301,7 @@ object NamedFactor {
       values(index) = value
       i += 1
     }
-    new NamedFactor(id, variables, Factor(states, values), Factor(states.clone(), values.clone()))
+    new NamedFactor(id, variables, Factor(states, values), belief = Factor(states.clone(), values.clone()))
   }
 
   def apply(factor: NamedFactor): NamedFactor = {
@@ -311,7 +324,7 @@ class Variable private (protected val values: Array[Double]) {
 
   /**
    * Operation on two variables
- *
+   *
    * @param other variable
    * @return multiplication result
    */
@@ -328,7 +341,7 @@ class Variable private (protected val values: Array[Double]) {
 
   /**
    * Multiply variables
- *
+   *
    * @param other variable
    * @return multiplication result
    */
@@ -338,7 +351,7 @@ class Variable private (protected val values: Array[Double]) {
 
   /**
    * Divide variables
- *
+   *
    * @param other variable
    * @return division result
    */
@@ -348,16 +361,25 @@ class Variable private (protected val values: Array[Double]) {
 
   /**
    * Make string
- *
+   *
    * @return string representation
    */
   def mkString(): String = {
     values.mkString(" ")
   }
 
+  def normalize(): Unit = {
+//    val sum = values.sum
+//    var i = 0
+//    while (i < values.length) {
+//      values(i) = values(i) / sum
+//      i += 1
+//    }
+  }
+
   /**
    * Clone values
- *
+   *
    * @return values
    */
   def cloneValues: Array[Double] = {
@@ -380,11 +402,13 @@ case class NamedVariable(val id: Long, val belief: Variable) extends FGVertex {
   override def processMessage(aggMessage: List[Message]): FGVertex = {
     println("belief update")
     println("id: " + id + " belief: " + belief.mkString() + " prod id: " + aggMessage(0).srcId + " " + aggMessage(0).message.mkString())
-    NamedVariable(id, belief.product(aggMessage(0).message))
+    NamedVariable(id, aggMessage(0).message/*belief.product(aggMessage(0).message)*/)
   }
 
   override def message(oldMessage: Message): Message = {
-    Message(this.id, belief.divide(oldMessage.message))
+    val newMessage = belief.divide(oldMessage.message)
+    newMessage.normalize()
+    Message(this.id, newMessage, false)
   }
 
   def mkString(): String = {
@@ -397,7 +421,7 @@ case class NamedVariable(val id: Long, val belief: Variable) extends FGVertex {
 //  def merge(other: Message): Message
 //}
 
-case class Message(val srcId: Long, val message: Variable) {
+case class Message(val srcId: Long, val message: Variable, val fromFactor: Boolean) {
 }
 
 class FGEdge(val toDst: Message, val toSrc: Message)

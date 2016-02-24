@@ -25,7 +25,7 @@ class BPSuite extends FunSuite with LocalSparkContext {
   test ("BP graph test") {
     withSpark { sc =>
       val graph = Utils.loadLibDAIToFactorGraph(sc, "c:/ulanov/dev/belief-propagation/data/factor")
-      BP.apply(graph, maxIterations = 3)
+      BP.apply(graph, maxIterations = 10)
     }
 
   }
