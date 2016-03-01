@@ -360,6 +360,30 @@ class Variable private (protected val values: Array[Double]) {
   }
 
   /**
+    * Sum variables
+    *
+    * @param other variable
+    * @return division result
+    */
+  def sum(other: Variable): Variable = {
+    operation(other, (x, y) => x + y)
+  }
+
+  /**
+    * Log of variable
+    * @return new variable
+    */
+  def log(): Variable = {
+    val result = new Array[Double](size)
+    var i = 0
+    while (i < size) {
+      result(i) = Math.log(this.values(i))
+      i += 1
+    }
+    new Variable(result)
+  }
+
+  /**
    * Make string
    *
    * @return string representation
@@ -369,12 +393,12 @@ class Variable private (protected val values: Array[Double]) {
   }
 
   def normalize(): Unit = {
-//    val sum = values.sum
-//    var i = 0
-//    while (i < values.length) {
-//      values(i) = values(i) / sum
-//      i += 1
-//    }
+    val sum = values.sum
+    var i = 0
+    while (i < values.length) {
+      values(i) = values(i) / sum
+      i += 1
+    }
   }
 
   /**
@@ -402,7 +426,8 @@ case class NamedVariable(val id: Long, val belief: Variable) extends FGVertex {
   override def processMessage(aggMessage: List[Message]): FGVertex = {
     println("belief update")
     println("id: " + id + " belief: " + belief.mkString() + " prod id: " + aggMessage(0).srcId + " " + aggMessage(0).message.mkString())
-    NamedVariable(id, aggMessage(0).message/*belief.product(aggMessage(0).message)*/)
+    aggMessage(0).message.normalize()
+    NamedVariable(id, aggMessage(0).message)
   }
 
   override def message(oldMessage: Message): Message = {
