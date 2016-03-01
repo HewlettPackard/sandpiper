@@ -268,6 +268,8 @@ class NamedFactor(val id: Long, val variables: Array[Long], val factor: Factor, 
     val index = varIndexById(oldMessage.srcId)
     val newMessage = Variable(belief.marginalOfDivision(oldMessage.message, index))
     newMessage.normalize()
+    // only for messages from Factors
+    //newMessage.log()
     return Message(this.id, newMessage, true)
   }
 }
@@ -370,17 +372,12 @@ class Variable private (protected val values: Array[Double]) {
   }
 
   /**
-    * Log of variable
-    * @return new variable
+    * Subtract variables
+    * @param other varibale
+    * @return subtraction result
     */
-  def log(): Variable = {
-    val result = new Array[Double](size)
-    var i = 0
-    while (i < size) {
-      result(i) = Math.log(this.values(i))
-      i += 1
-    }
-    new Variable(result)
+  def subtract(other: Variable): Variable = {
+    operation(other, (x, y) => x - y)
   }
 
   /**
@@ -399,6 +396,31 @@ class Variable private (protected val values: Array[Double]) {
       values(i) = values(i) / sum
       i += 1
     }
+  }
+
+  def log(): Unit = {
+    var i = 0
+    while (i < values.length) {
+      values(i) = math.log(values(i))
+      i += 1
+    }
+  }
+
+  def exp(): Unit = {
+    var i = 0
+    while (i < values.length) {
+      values(i) = math.exp(values(i))
+      i += 1
+    }
+  }
+
+  def subtractMax(): Unit = {
+//    val max = values.max
+//    var i = 0
+//    while (i < values.length) {
+//      values(i) = values(i) - max
+//      i += 1
+//    }
   }
 
   /**
@@ -424,8 +446,8 @@ object Variable {
 
 case class NamedVariable(val id: Long, val belief: Variable) extends FGVertex {
   override def processMessage(aggMessage: List[Message]): FGVertex = {
-    println("belief update")
-    println("id: " + id + " belief: " + belief.mkString() + " prod id: " + aggMessage(0).srcId + " " + aggMessage(0).message.mkString())
+//    aggMessage(0).message.subtractMax()
+//    aggMessage(0).message.exp()
     aggMessage(0).message.normalize()
     NamedVariable(id, aggMessage(0).message)
   }

@@ -21,7 +21,7 @@ import org.apache.spark.graphx.{TripletFields, Graph}
 
 object BP {
 
-  def apply(graph: Graph[FGVertex, Boolean], maxIterations: Int = 50, maxDiff: Double = 1e-3): Graph[FGVertex, Boolean] = {
+  def apply(graph: Graph[FGVertex, Boolean], maxIterations: Int = 50, maxDiff: Double = 1e-3): Graph[FGVertex, FGEdge] = {
     // put messages on edges, they will be mutated every iteration
     var newGraph = graph.mapTriplets { triplet =>
       val srcId = triplet.srcAttr.id
@@ -41,16 +41,6 @@ object BP {
         val toDst = Message(srcId, Variable.fill(messageSize)(1.0), fromFactor)
         val toSrc = Message(dstId, Variable.fill(messageSize)(1.0), !fromFactor)
         new FGEdge(toDst, toSrc)
-//      // put initial messages
-//      if (dstId == 8) {
-//        val toDst = Message(srcId, Variable.fill(messageSize)(1.0), fromFactor)
-//        val toSrc = Message(dstId, Variable(Array(1.0, 0.0)), !fromFactor)
-//        new FGEdge(toDst, toSrc)
-//      } else {
-//        val toDst = Message(srcId, Variable.fill(messageSize)(1.0), fromFactor)
-//        val toSrc = Message(dstId, Variable.fill(messageSize)(1.0), !fromFactor)
-//        new FGEdge(toDst, toSrc)
-//      }
     }
 
     var oldGraph = newGraph
@@ -68,16 +58,9 @@ object BP {
         // TODO: extract Merge into the new AggregatedMessage class and use mutable structures
         (m1, m2) => {
           // TODO: fix merge - merge if to variables, list if to factors
-          println(m1.length + " " + m2.length + " from1:" + m1(0).srcId + " from2:" + m2(0).srcId)
           if (m1(0).fromFactor && m2(0).fromFactor) {
-            println("aggMsg")
-            println("from " + m1(0).srcId + " contents:" + m1(0).message.mkString() + " " + m1(0).fromFactor)
-            println("from " + m2(0).srcId + " contents:" + m2(0).message.mkString() + " " + m1(0).fromFactor)
             List(Message(m1(0).srcId, m1(0).message.product(m2(0).message), true))
           } else {
-            println("++Msg")
-            println("from " + m1(0).srcId + " contents:" + m1(0).message.mkString() + " " + m1(0).fromFactor)
-            println("from " + m2(0).srcId + " contents:" + m2(0).message.mkString() + " " + m1(0).fromFactor)
             m1 ++ m2
           }
         },
@@ -102,7 +85,7 @@ object BP {
     // TODO: iterate with bpGraph.mapTriplets (compute and put new messages on edges)
 
     // TODO: return beliefs as RDD[Beliefs] that can be computed at the end as message product
-    graph
+    newGraph
   }
 
   def printEdges(graph: Graph[FGVertex, FGEdge]): Unit = {
