@@ -23,6 +23,7 @@ trait FGVertex {
   def mkString(): String
   def processMessage(aggMessage: List[Message]): FGVertex
   def message(oldMessage: Message): Message
+  def initMessage(varId: Long): Message
 }
 
 /**
@@ -259,7 +260,12 @@ class NamedFactor(val id: Long, val variables: Array[Long], val factor: Factor, 
     newMessage.normalize()
     // only for messages from Factors
     newMessage.log()
-    return Message(this.id, newMessage, true)
+    Message(this.id, newMessage, true)
+  }
+
+  override def initMessage(varId: Long): Message = {
+    // generate message with ones
+    Message(this.id, Variable.fill(this.length(varId))(1.0), fromFactor = true)
   }
 }
 
@@ -446,6 +452,11 @@ case class NamedVariable(val id: Long, val belief: Variable, val prior: Variable
     val newMessage = belief.divide(oldMessage.message)
     newMessage.normalize()
     Message(this.id, newMessage, false)
+  }
+
+
+  override def initMessage(varId: Long): Message = {
+    Message(this.id, Variable.fill(this.belief.size)(1.0), fromFactor = false)
   }
 
   def mkString(): String = {
