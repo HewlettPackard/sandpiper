@@ -245,10 +245,6 @@ class NamedFactor(val id: Long, val variables: Array[Long], val factor: Factor, 
   }
 
   override def processMessage(aggMessage: List[Message]): FGVertex = {
-    // TODO: fix this uglyness (don't process messages to factors with 1 variable
-    if (this.variables.length == 1) {
-      return this
-    }
     var newBelief = factor
     for(message <- aggMessage) {
       val index = varIndexById(message.srcId)
@@ -258,13 +254,6 @@ class NamedFactor(val id: Long, val variables: Array[Long], val factor: Factor, 
   }
 
   override def message(oldMessage: Message): Message = {
-    // TODO: fix this uglyness (don't use old message to send new)
-    if (this.variables.length == 1) {
-      val index = varIndexById(oldMessage.srcId)
-      val newMessage = Variable(belief.marginalize(index))
-      newMessage.normalize()
-      return Message(this.id, newMessage, true)
-    }
     val index = varIndexById(oldMessage.srcId)
     val newMessage = Variable(belief.marginalOfDivision(oldMessage.message, index))
     newMessage.normalize()
