@@ -444,12 +444,13 @@ object Variable {
   }
 }
 
-case class NamedVariable(val id: Long, val belief: Variable) extends FGVertex {
+case class NamedVariable(val id: Long, val belief: Variable, val prior: Variable) extends FGVertex {
   override def processMessage(aggMessage: List[Message]): FGVertex = {
 //    aggMessage(0).message.subtractMax()
 //    aggMessage(0).message.exp()
-    aggMessage(0).message.normalize()
-    NamedVariable(id, aggMessage(0).message)
+    val newBelief = prior.product(aggMessage(0).message)
+    newBelief.normalize()
+    NamedVariable(id, newBelief, prior)
   }
 
   override def message(oldMessage: Message): Message = {
@@ -459,7 +460,7 @@ case class NamedVariable(val id: Long, val belief: Variable) extends FGVertex {
   }
 
   def mkString(): String = {
-    "id: " + id + ", belief: " + belief.mkString()
+    "id: " + id + ", belief: " + belief.mkString() + ", prior: " + prior.mkString()
   }
 }
 

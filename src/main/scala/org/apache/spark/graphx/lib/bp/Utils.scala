@@ -85,15 +85,20 @@ object Utils {
         nonZeroCounter += 1
       }
       // create Factor vertex
-      factorBuffer += NamedFactor(factorId, varIds, varNumValues, nonZeroNum, indexAndValues)
-      // create Variable vertex if factor has only one variable
+      val factor = NamedFactor(factorId, varIds, varNumValues, nonZeroNum, indexAndValues)
+      // create Variable vertex if factor has only one variable and add factor there as a prior
       if (varNum == 1) {
         // TODO: think if beliefs can be added later for the algorithm
-        factorBuffer += new NamedVariable(varIds(0), belief = Variable.fill(varNumValues(0))(1.0))
-      }
-      // create edges between Variables and Factor
-      for (varId <- varIds) {
-        edgeBuffer += new Tuple2(varId, factorId)
+        val variable = new NamedVariable(varIds(0),
+          belief = Variable.fill(varNumValues(0))(1.0),
+          prior = Variable(factor.marginalize(varIds(0))))
+        factorBuffer += variable
+      } else {
+        factorBuffer += factor
+        // create edges between Variables and Factor
+        for (varId <- varIds) {
+          edgeBuffer += new Tuple2(varId, factorId)
+        }
       }
       // increment of factor counter
       factorCounter += 1

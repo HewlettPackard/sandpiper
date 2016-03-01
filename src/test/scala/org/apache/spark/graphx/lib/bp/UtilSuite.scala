@@ -29,7 +29,7 @@ class UtilSuite extends FunSuite with LocalSparkContext {
       case f: NamedFactor => true
       case _ => false
     }}
-    assert(numFactors == 7 && totalNum == 11, "Graph7.fg contains 7 factors and 4 variables")
+    assert(numFactors == 3 && totalNum == 7, "Graph7.fg contains 3 complex factors and 4 variables")
   }
 
   test("read file from RDD") {
@@ -40,7 +40,8 @@ class UtilSuite extends FunSuite with LocalSparkContext {
           case f: NamedFactor => 1
           case _ => 0
         }}.sum().toLong
-      assert(numFactors == 7 && totalNum == 11, "Graph7.fg contains 7 factors and 4 variables")
+      assert(numFactors == 3 && totalNum == 7,
+        "Graph7.fg contains 3 complex factors and 4 variables")
     }
   }
   // TODO: make test with reading several files
