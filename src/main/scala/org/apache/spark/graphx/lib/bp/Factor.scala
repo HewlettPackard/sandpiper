@@ -258,7 +258,7 @@ class NamedFactor(val id: Long, val variables: Array[Long], val factor: Factor, 
     val newMessage = Variable(belief.marginalOfDivision(oldMessage.message, index))
     newMessage.normalize()
     // only for messages from Factors
-    //newMessage.log()
+    newMessage.log()
     return Message(this.id, newMessage, true)
   }
 }
@@ -435,8 +435,8 @@ object Variable {
 
 case class NamedVariable(val id: Long, val belief: Variable, val prior: Variable) extends FGVertex {
   override def processMessage(aggMessage: List[Message]): FGVertex = {
-//    aggMessage(0).message.subtractMax()
-//    aggMessage(0).message.exp()
+    aggMessage(0).message.subtractMax()
+    aggMessage(0).message.exp()
     val newBelief = prior.product(aggMessage(0).message)
     newBelief.normalize()
     NamedVariable(id, newBelief, prior)

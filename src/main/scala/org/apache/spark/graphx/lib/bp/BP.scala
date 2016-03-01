@@ -59,7 +59,8 @@ object BP {
         (m1, m2) => {
           // TODO: fix merge - merge if to variables, list if to factors
           if (m1(0).fromFactor && m2(0).fromFactor) {
-            List(Message(m1(0).srcId, m1(0).message.product(m2(0).message), true))
+            List(Message(m1(0).srcId, m1(0).message.sum(m2(0).message), true))
+            //List(Message(m1(0).srcId, m1(0).message.product(m2(0).message), true))
           } else {
             m1 ++ m2
           }
