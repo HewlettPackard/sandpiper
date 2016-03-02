@@ -264,7 +264,7 @@ class NamedFactor(val id: Long, val variables: Array[Long], val factor: Factor, 
   }
 
   override def initMessage(varId: Long): Message = {
-    // generate message with ones
+    // TODO: generate message with zeros (that is log of 1s)
     Message(this.id, Variable.fill(this.length(varId))(1.0), fromFactor = true)
   }
 }
@@ -410,12 +410,24 @@ class Variable private (protected val values: Array[Double]) {
   }
 
   def subtractMax(): Unit = {
-//    val max = values.max
-//    var i = 0
-//    while (i < values.length) {
-//      values(i) = values(i) - max
-//      i += 1
-//    }
+    val max = values.max
+    var i = 0
+    while (i < values.length) {
+      values(i) = values(i) - max
+      i += 1
+    }
+  }
+
+  def maxDiff(other: Variable): Double = {
+    require(other.size == this.size, "Variables must have same size")
+    var i = 0
+    var diff = 0d
+    while (i < values.length) {
+      val d = values(i) - other.values(i)
+      diff = if (d > diff) d else diff
+      i += 1
+    }
+    diff
   }
 
   /**
@@ -472,4 +484,4 @@ case class NamedVariable(val id: Long, val belief: Variable, val prior: Variable
 case class Message(val srcId: Long, val message: Variable, val fromFactor: Boolean) {
 }
 
-class FGEdge(val toDst: Message, val toSrc: Message)
+class FGEdge(val toDst: Message, val toSrc: Message, val converged: Boolean)

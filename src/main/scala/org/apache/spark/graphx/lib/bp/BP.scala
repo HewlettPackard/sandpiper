@@ -21,11 +21,11 @@ import org.apache.spark.graphx.{TripletFields, Graph}
 
 object BP {
 
-  def apply(graph: Graph[FGVertex, Boolean], maxIterations: Int = 50, maxDiff: Double = 1e-3): Graph[FGVertex, FGEdge] = {
+  def apply(graph: Graph[FGVertex, Boolean], maxIterations: Int = 50, eps: Double = 1e-3): Graph[FGVertex, FGEdge] = {
     // put initial messages on edges, they will be mutated every iteration
     var newGraph = graph.mapTriplets { triplet =>
       new FGEdge(triplet.srcAttr.initMessage(triplet.dstAttr.id),
-        triplet.dstAttr.initMessage(triplet.srcAttr.id))
+        triplet.dstAttr.initMessage(triplet.srcAttr.id), false)
     }.cache()
 
     var oldGraph = newGraph
@@ -56,9 +56,20 @@ object BP {
       newGraph = graphWithNewVertices.mapTriplets { triplet =>
         val toSrc = triplet.dstAttr.message(triplet.attr.toDst)
         val toDst = triplet.srcAttr.message(triplet.attr.toSrc)
-        new FGEdge(toDst, toSrc)
+        val diffSrc = toSrc.message.maxDiff(triplet.attr.toSrc.message)
+        val diffDst = toDst.message.maxDiff(triplet.attr.toDst.message)
+        println(triplet.srcId + "-" + triplet.dstId)
+        println("old toSrc: " + triplet.attr.toSrc.message.mkString())
+        println("new toSrc: " + toSrc.message.mkString())
+        println("diff: "  + diffSrc)
+        println("old toDst: " + triplet.attr.toDst.message.mkString())
+        println("new toDst: " + toDst.message.mkString())
+        println("diff: "  + diffDst)
+        // TODO: different scales log and not log compared with eps
+        new FGEdge(toDst, toSrc, diffSrc < eps && diffDst < eps)
       }.cache()
       newGraph.edges.foreach(x => {})
+      printEdges(newGraph)
       oldGraph.unpersist(false)
       graphWithNewVertices.unpersist(false)
       iter += 1
@@ -73,7 +84,8 @@ object BP {
     graph.edges.collect.foreach(x =>
       println(x.srcId + "-" + x.dstId +
         " toSrc:" + x.attr.toSrc.message.mkString() + " " + x.attr.toSrc.fromFactor +
-        " toDst:" + x.attr.toDst.message.mkString() + " " + x.attr.toDst.fromFactor))
+        " toDst:" + x.attr.toDst.message.mkString() + " " + x.attr.toDst.fromFactor +
+        " converged:" + x.attr.converged))
 
   }
 
