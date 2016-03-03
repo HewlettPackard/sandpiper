@@ -246,6 +246,7 @@ class NamedFactor(val id: Long, val variables: Array[Long], val factor: Factor, 
   }
 
   override def processMessage(aggMessage: List[Message]): FGVertex = {
+    assert(aggMessage.length > 1)
     var newBelief = factor
     for(message <- aggMessage) {
       val index = varIndexById(message.srcId)
@@ -260,7 +261,7 @@ class NamedFactor(val id: Long, val variables: Array[Long], val factor: Factor, 
     newMessage.normalize()
     // only for messages from Factors
     newMessage.log()
-    Message(this.id, newMessage, true)
+    Message(this.id, newMessage, fromFactor = true)
   }
 
   override def initMessage(varId: Long): Message = {
@@ -453,6 +454,7 @@ object Variable {
 
 case class NamedVariable(val id: Long, val belief: Variable, val prior: Variable) extends FGVertex {
   override def processMessage(aggMessage: List[Message]): FGVertex = {
+    assert(aggMessage.length == 1)
     aggMessage(0).message.subtractMax()
     aggMessage(0).message.exp()
     val newBelief = prior.product(aggMessage(0).message)
@@ -461,9 +463,11 @@ case class NamedVariable(val id: Long, val belief: Variable, val prior: Variable
   }
 
   override def message(oldMessage: Message): Message = {
-    val newMessage = belief.divide(oldMessage.message)
+    val expOldMessage = Variable(oldMessage.message.cloneValues)
+    expOldMessage.exp()
+    val newMessage = belief.divide(expOldMessage)
     newMessage.normalize()
-    Message(this.id, newMessage, false)
+    Message(this.id, newMessage, fromFactor = false)
   }
 
 
