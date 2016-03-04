@@ -26,7 +26,7 @@ object BP {
     var newGraph = graph.mapTriplets { triplet =>
       new FGEdge(triplet.srcAttr.initMessage(triplet.dstAttr.id),
         triplet.dstAttr.initMessage(triplet.srcAttr.id), false)
-    }.cache()
+    }//.cache()
 
     var oldGraph = newGraph
     // main algorithm loop:
@@ -51,8 +51,8 @@ object BP {
         TripletFields.EdgeOnly
       )
       val graphWithNewVertices = newGraph.joinVertices(newAggMessages)(
-        (id, attr, msg) => attr.processMessage(msg)).cache()
-      graphWithNewVertices.edges.foreachPartition(x => {})
+        (id, attr, msg) => attr.processMessage(msg))//.cache()
+      //graphWithNewVertices.edges.foreachPartition(x => {})
       oldGraph = newGraph
       newGraph = graphWithNewVertices.mapTriplets { triplet =>
         val toSrc = triplet.dstAttr.message(triplet.attr.toDst)
@@ -68,11 +68,11 @@ object BP {
         println("diff: "  + diffDst)
         // TODO: different scales log and not log compared with eps
         new FGEdge(toDst, toSrc, diffSrc < eps && diffDst < eps)
-      }.cache()
-      newGraph.edges.foreach(x => {})
+      }//.cache()
+      //newGraph.edges.foreach(x => {})
       printEdges(newGraph)
-      oldGraph.unpersist(false)
-      graphWithNewVertices.unpersist(false)
+      //oldGraph.unpersist(false)
+      //graphWithNewVertices.unpersist(false)
       iter += 1
     }
     // TODO: iterate with bpGraph.mapTriplets (compute and put new messages on edges)

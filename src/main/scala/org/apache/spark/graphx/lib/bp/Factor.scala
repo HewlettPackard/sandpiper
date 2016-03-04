@@ -252,6 +252,7 @@ class NamedFactor(val id: Long, val variables: Array[Long], val factor: Factor, 
       val index = varIndexById(message.srcId)
       newBelief = newBelief.product(message.message, index)
     }
+    println("newFactor")
     NamedFactor(id, variables, factor, newBelief)
   }
 
@@ -349,7 +350,6 @@ class Variable private (
     */
   protected def ops(other: Variable, compose: Boolean): Variable = {
     require(this.size == other.size)
-    println(this.isLogScale + " " + other.isLogScale + " " + compose)
     val result = new Array[Double](size)
     var i = 0
     def f: (Double, Double) => Double =
@@ -524,6 +524,7 @@ case class NamedVariable(val id: Long, val belief: Variable, val prior: Variable
     //val newMessage = belief.divide(expOldMessage)
     val newMessage = belief.decompose(oldMessage.message)
     newMessage.normalize()
+    println("newMessage:" + newMessage.mkString())
     Message(this.id, newMessage, fromFactor = false)
   }
 
