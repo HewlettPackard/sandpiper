@@ -41,7 +41,8 @@ object BP {
         // TODO: extract Merge into the new AggregatedMessage class and use mutable structures
         (m1, m2) => {
           if (m1(0).fromFactor && m2(0).fromFactor) {
-            List(Message(m1(0).srcId, m1(0).message.sum(m2(0).message), true))
+            List(Message(m1(0).srcId, m1(0).message.compose(m2(0).message), true))
+            //List(Message(m1(0).srcId, m1(0).message.sum(m2(0).message), true))
             //List(Message(m1(0).srcId, m1(0).message.product(m2(0).message), true))
           } else {
             m1 ++ m2

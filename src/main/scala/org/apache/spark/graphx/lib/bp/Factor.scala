@@ -261,12 +261,13 @@ class NamedFactor(val id: Long, val variables: Array[Long], val factor: Factor, 
     newMessage.normalize()
     // only for messages from Factors
     newMessage.log()
-    Message(this.id, newMessage, fromFactor = true)
+    Message(this.id, Variable(newMessage.cloneValues, isLogScale = true), fromFactor = true)
+    //Message(this.id, newMessage, fromFactor = true)
   }
 
   override def initMessage(varId: Long): Message = {
     // TODO: generate message with zeros (that is log of 1s)
-    Message(this.id, Variable.fill(this.length(varId))(1.0), fromFactor = true)
+    Message(this.id, Variable.fill(this.length(varId), isLogScale = true)(1.0), fromFactor = true)
   }
 }
 
@@ -313,7 +314,9 @@ object NamedFactor {
  *
  * @param values values
  */
-class Variable private (protected val values: Array[Double]) {
+class Variable private (
+  protected val values: Array[Double],
+  private val isLogScale: Boolean = false) {
 
   // TODO: come up with a single function for elementwise operations given a function
   val size = values.length
@@ -335,6 +338,56 @@ class Variable private (protected val values: Array[Double]) {
       i += 1
     }
     new Variable(result)
+  }
+
+  /**
+    * Operation on two variables
+    *
+    * @param other variable
+    * @param compose compose or decompose
+    * @return multiplication result
+    */
+  protected def ops(other: Variable, compose: Boolean): Variable = {
+    require(this.size == other.size)
+    println(this.isLogScale + " " + other.isLogScale + " " + compose)
+    val result = new Array[Double](size)
+    var i = 0
+    def f: (Double, Double) => Double =
+      (this.isLogScale, other.isLogScale, compose) match {
+      case (true, true, true) => (x: Double, y: Double) => x + y
+      case (false, true, true) => (x: Double, y: Double) => x * math.exp(y)
+      case (false, false, true) => (x: Double, y: Double) => x * y
+      case (true, false, true) => (x: Double, y: Double) => x + math.log(y)
+      case (true, true, false) => (x: Double, y: Double) => x - y
+      case (false, true, false) => (x: Double, y: Double) => x / math.exp(y)
+      case (false, false, false) => (x: Double, y: Double) => x / y
+      case (true, false, false) => (x: Double, y: Double) => x - math.log(y)
+    }
+    while (i < size) {
+        result(i) = f(this.values(i), other.values(i))
+      i += 1
+    }
+    new Variable(result, this.isLogScale)
+  }
+
+  /**
+    * Compose two variables, i.e. sum if both are log-scale, product otherwise
+    *
+    * @param other other variable
+    * @return aggregation result
+    */
+  def compose(other: Variable): Variable = {
+    ops(other, compose = true)
+  }
+
+  /**
+    * Decompose two variables, i.e. subtract is both are log-scale, divide otherwise
+    *
+    * @param other
+    * @return
+    */
+  def decompose(other: Variable): Variable = {
+    ops(other, compose = false)
   }
 
   /**
@@ -369,6 +422,7 @@ class Variable private (protected val values: Array[Double]) {
 
   /**
     * Subtract variables
+    *
     * @param other varibale
     * @return subtraction result
     */
@@ -443,29 +497,32 @@ class Variable private (protected val values: Array[Double]) {
 
 object Variable {
 
-  def apply(values: Array[Double]): Variable = {
-    new Variable(values)
+  def apply(values: Array[Double], isLogScale: Boolean = false): Variable = {
+    new Variable(values, isLogScale)
   }
 
-  def fill(size: Int)(elem: => Double): Variable = {
-    new Variable(Array.fill[Double](size)(elem))
+  def fill(size: Int, isLogScale: Boolean = false)(elem: => Double): Variable = {
+    new Variable(Array.fill[Double](size)(elem), isLogScale)
   }
 }
 
 case class NamedVariable(val id: Long, val belief: Variable, val prior: Variable) extends FGVertex {
   override def processMessage(aggMessage: List[Message]): FGVertex = {
     assert(aggMessage.length == 1)
-    aggMessage(0).message.subtractMax()
-    aggMessage(0).message.exp()
-    val newBelief = prior.product(aggMessage(0).message)
+    //aggMessage(0).message.subtractMax()
+    //aggMessage(0).message.exp()
+    //val newBelief = prior.product(aggMessage(0).message)
+    val newBelief = prior.compose(aggMessage(0).message)
     newBelief.normalize()
+    println("newBelief:" + newBelief.mkString())
     NamedVariable(id, newBelief, prior)
   }
 
   override def message(oldMessage: Message): Message = {
-    val expOldMessage = Variable(oldMessage.message.cloneValues)
-    expOldMessage.exp()
-    val newMessage = belief.divide(expOldMessage)
+    //val expOldMessage = Variable(oldMessage.message.cloneValues)
+    //expOldMessage.exp()
+    //val newMessage = belief.divide(expOldMessage)
+    val newMessage = belief.decompose(oldMessage.message)
     newMessage.normalize()
     Message(this.id, newMessage, fromFactor = false)
   }
