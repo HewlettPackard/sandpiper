@@ -35,7 +35,8 @@ object BP {
     var oldGraph = newGraph
     // main algorithm loop:
     var iter = 0
-    while (iter < maxIterations) {
+    var converged = false
+    while (iter < maxIterations && !converged) {
       // messages to variables are merged as a product, messages to factors are merged as lists
       val newAggMessages = newGraph.aggregateMessages[List[Message]](
         triplet => {
@@ -45,9 +46,7 @@ object BP {
         // TODO: extract Merge into the new AggregatedMessage class and use mutable structures
         (m1, m2) => {
           if (m1(0).fromFactor && m2(0).fromFactor) {
-            List(Message(m1(0).srcId, m1(0).message.compose(m2(0).message), true))
-            //List(Message(m1(0).srcId, m1(0).message.sum(m2(0).message), true))
-            //List(Message(m1(0).srcId, m1(0).message.product(m2(0).message), true))
+            List(Message(m1(0).srcId, m1(0).message.compose(m2(0).message), fromFactor = true))
           } else {
             m1 ++ m2
           }
@@ -63,13 +62,6 @@ object BP {
         val toDst = triplet.srcAttr.message(triplet.attr.toSrc, logScale)
         val diffSrc = toSrc.message.maxDiff(triplet.attr.toSrc.message)
         val diffDst = toDst.message.maxDiff(triplet.attr.toDst.message)
-        println(triplet.srcId + "-" + triplet.dstId)
-        println("old toSrc: " + triplet.attr.toSrc.message.mkString())
-        println("new toSrc: " + toSrc.message.mkString())
-        println("diff: "  + diffSrc)
-        println("old toDst: " + triplet.attr.toDst.message.mkString())
-        println("new toDst: " + toDst.message.mkString())
-        println("diff: "  + diffDst)
         // TODO: different scales log and not log compared with eps
         new FGEdge(toDst, toSrc, diffSrc < eps && diffDst < eps)
       }//.cache()
@@ -78,9 +70,14 @@ object BP {
       //oldGraph.unpersist(false)
       //graphWithNewVertices.unpersist(false)
       iter += 1
+      converged = if (iter != 1) newGraph.edges.aggregate(true)(
+        (res, edge) =>
+          res && edge.attr.converged,
+        (res1, res2) =>
+          res1 && res2) else false
     }
-    // TODO: iterate with bpGraph.mapTriplets (compute and put new messages on edges)
-
+    println("Iterations: " + iter + "/" + maxIterations +
+      ". Converged: " + converged + " with esp=" + eps)
     // TODO: return beliefs as RDD[Beliefs] that can be computed at the end as message product
     newGraph
   }
