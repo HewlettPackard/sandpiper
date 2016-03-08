@@ -21,11 +21,15 @@ import org.apache.spark.graphx.{TripletFields, Graph}
 
 object BP {
 
-  def apply(graph: Graph[FGVertex, Boolean], maxIterations: Int = 50, eps: Double = 1e-3): Graph[FGVertex, FGEdge] = {
+  def apply(
+  graph: Graph[FGVertex, Boolean],
+  maxIterations: Int = 50,
+  eps: Double = 1e-3,
+  logScale: Boolean = true): Graph[FGVertex, FGEdge] = {
     // put initial messages on edges, they will be mutated every iteration
     var newGraph = graph.mapTriplets { triplet =>
-      new FGEdge(triplet.srcAttr.initMessage(triplet.dstAttr.id),
-        triplet.dstAttr.initMessage(triplet.srcAttr.id), false)
+      new FGEdge(triplet.srcAttr.initMessage(triplet.dstAttr.id, logScale),
+        triplet.dstAttr.initMessage(triplet.srcAttr.id, logScale), false)
     }//.cache()
 
     var oldGraph = newGraph
@@ -55,8 +59,8 @@ object BP {
       //graphWithNewVertices.edges.foreachPartition(x => {})
       oldGraph = newGraph
       newGraph = graphWithNewVertices.mapTriplets { triplet =>
-        val toSrc = triplet.dstAttr.message(triplet.attr.toDst)
-        val toDst = triplet.srcAttr.message(triplet.attr.toSrc)
+        val toSrc = triplet.dstAttr.message(triplet.attr.toDst, logScale)
+        val toDst = triplet.srcAttr.message(triplet.attr.toSrc, logScale)
         val diffSrc = toSrc.message.maxDiff(triplet.attr.toSrc.message)
         val diffDst = toDst.message.maxDiff(triplet.attr.toDst.message)
         println(triplet.srcId + "-" + triplet.dstId)

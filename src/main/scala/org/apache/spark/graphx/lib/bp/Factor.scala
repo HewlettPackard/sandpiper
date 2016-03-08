@@ -22,8 +22,8 @@ trait FGVertex {
   val id: Long
   def mkString(): String
   def processMessage(aggMessage: List[Message]): FGVertex
-  def message(oldMessage: Message): Message
-  def initMessage(varId: Long): Message
+  def message(oldMessage: Message, logScale: Boolean): Message
+  def initMessage(varId: Long, logScale: Boolean): Message
 }
 
 /**
@@ -249,6 +249,7 @@ class NamedFactor(val id: Long, val variables: Array[Long], val factor: Factor, 
     assert(aggMessage.length > 1)
     var newBelief = factor
     for(message <- aggMessage) {
+      assert(message.message.isLogScale == false, "Factor should not receive logscale messages")
       val index = varIndexById(message.srcId)
       newBelief = newBelief.product(message.message, index)
     }
@@ -256,19 +257,19 @@ class NamedFactor(val id: Long, val variables: Array[Long], val factor: Factor, 
     NamedFactor(id, variables, factor, newBelief)
   }
 
-  override def message(oldMessage: Message): Message = {
+  override def message(oldMessage: Message, logScale: Boolean): Message = {
     val index = varIndexById(oldMessage.srcId)
     val newMessage = Variable(belief.marginalOfDivision(oldMessage.message, index))
     newMessage.normalize()
     // only for messages from Factors
-    newMessage.log()
-    Message(this.id, Variable(newMessage.cloneValues, isLogScale = true), fromFactor = true)
+    if (logScale) newMessage.log()
+    Message(this.id, Variable(newMessage.cloneValues, logScale), fromFactor = true)
     //Message(this.id, newMessage, fromFactor = true)
   }
 
-  override def initMessage(varId: Long): Message = {
+  override def initMessage(varId: Long, logScale: Boolean): Message = {
     // TODO: generate message with zeros (that is log of 1s)
-    Message(this.id, Variable.fill(this.length(varId), isLogScale = true)(1.0), fromFactor = true)
+    Message(this.id, Variable.fill(this.length(varId), logScale)(1.0), fromFactor = true)
   }
 }
 
@@ -317,7 +318,7 @@ object NamedFactor {
  */
 class Variable private (
   protected val values: Array[Double],
-  private val isLogScale: Boolean = false) {
+  val isLogScale: Boolean = false) {
 
   // TODO: come up with a single function for elementwise operations given a function
   val size = values.length
@@ -518,7 +519,7 @@ case class NamedVariable(val id: Long, val belief: Variable, val prior: Variable
     NamedVariable(id, newBelief, prior)
   }
 
-  override def message(oldMessage: Message): Message = {
+  override def message(oldMessage: Message, logScale: Boolean): Message = {
     //val expOldMessage = Variable(oldMessage.message.cloneValues)
     //expOldMessage.exp()
     //val newMessage = belief.divide(expOldMessage)
@@ -529,7 +530,7 @@ case class NamedVariable(val id: Long, val belief: Variable, val prior: Variable
   }
 
 
-  override def initMessage(varId: Long): Message = {
+  override def initMessage(varId: Long, logScale: Boolean): Message = {
     Message(this.id, Variable.fill(this.belief.size)(1.0), fromFactor = false)
   }
 
