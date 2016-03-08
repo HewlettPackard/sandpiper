@@ -36,7 +36,7 @@ class BPSuite extends FunSuite with LocalSparkContext {
         case _ => Seq.empty[(Long, Variable)]
         }
       }.collect()
-      val eps = 10e-2
+      val eps = 10e-3
       calculatedProbabilities.foreach { case (id, belief) =>
         assert(belief.state(0) - trueProbabilities(id)._1 < eps &&
           belief.state(1) - trueProbabilities(id)._2 < eps)}
@@ -57,7 +57,7 @@ class BPSuite extends FunSuite with LocalSparkContext {
         case _ => Seq.empty[(Long, Variable)]
       }
       }.collect()
-      val eps = 10e-2
+      val eps = 10e-3
       calculatedProbabilities.foreach { case (id, belief) =>
         assert(belief.state(0) - trueProbabilities(id)._1 < eps &&
           belief.state(1) - trueProbabilities(id)._2 < eps)}

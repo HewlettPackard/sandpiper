@@ -32,7 +32,6 @@ trait LocalSparkContext {
     val sc = new SparkContext("local", "test", conf)
     Logger.getLogger("org").setLevel(Level.OFF)
     Logger.getLogger("akka").setLevel(Level.OFF)
-
     try {
       f(sc)
     } finally {

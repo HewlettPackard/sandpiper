@@ -18,14 +18,6 @@
 package org.apache.spark.graphx.lib.bp
 
 
-trait FGVertex {
-  val id: Long
-  def mkString(): String
-  def processMessage(aggMessage: List[Message]): FGVertex
-  def message(oldMessage: Message, logScale: Boolean): Message
-  def initMessage(varId: Long, logScale: Boolean): Message
-}
-
 /**
  *
  * Representation of a factor
@@ -205,111 +197,6 @@ object Factor {
   }
 }
 
-class NamedFactor(val id: Long, val variables: Array[Long], val factor: Factor, val belief: Factor)
-  extends FGVertex {
-  /**
-   * Returns variable index in the values array by its ID
-    *
-    * @param varId variable ID
-   * @return index
-   */
-  private def varIndexById(varId: Long): Int = {
-    val index = variables.indexOf(varId)
-    require(index >= 0, "Variable not found in factor")
-    index
-  }
-
-  /**
-    * Number of values for a variable
- *
-   * @param varId variable id
-   * @return number of values
-   */
-  def length(varId: Long): Int = {
-    val index = varIndexById(varId)
-    factor.length(index)
-  }
-
-  /**
-    * Marginalize given the variable
- *
-   * @param varId variable id
-   * @return marginal
-   */
-  def marginalize(varId: Long): Array[Double] = {
-    val index = varIndexById(varId)
-    factor.marginalize(index)
-  }
-
-  def mkString(): String = {
-    "id: " + id.toString() + ", factor: " + factor.mkString() + ", belief: " + belief.mkString()
-  }
-
-  override def processMessage(aggMessage: List[Message]): FGVertex = {
-    assert(aggMessage.length > 1)
-    var newBelief = factor
-    for(message <- aggMessage) {
-      assert(message.message.isLogScale == false, "Factor should not receive logscale messages")
-      val index = varIndexById(message.srcId)
-      newBelief = newBelief.product(message.message, index)
-    }
-    println("newFactor")
-    NamedFactor(id, variables, factor, newBelief)
-  }
-
-  override def message(oldMessage: Message, logScale: Boolean): Message = {
-    val index = varIndexById(oldMessage.srcId)
-    val newMessage = Variable(belief.marginalOfDivision(oldMessage.message, index))
-    newMessage.normalize()
-    // only for messages from Factors
-    if (logScale) newMessage.log()
-    Message(this.id, Variable(newMessage.cloneValues, logScale), fromFactor = true)
-    //Message(this.id, newMessage, fromFactor = true)
-  }
-
-  override def initMessage(varId: Long, logScale: Boolean): Message = {
-    // TODO: generate message with zeros (that is log of 1s)
-    Message(this.id, Variable.fill(this.length(varId), logScale)(1.0), fromFactor = true)
-  }
-}
-
-object NamedFactor {
-
-  def apply(id: Long, variables: Array[Long], factor: Factor, belief: Factor): NamedFactor = {
-    new NamedFactor(id, variables, factor, belief)
-  }
-
-  /**
-   * Create factor from the libDAI description
- *
-   * @param id unique id
-   * @param variables ids of variables
-   * @param states num of variables states
-   * @param nonZeroNum num of nonzero values
-   * @param indexAndValues index and values
-   * @return factor
-   */
-  def apply(
-             id: Long,
-             variables: Array[Long],
-             states: Array[Int],
-             nonZeroNum: Int,
-             indexAndValues: Array[(Int, Double)]): NamedFactor = {
-    val values = new Array[Double](states.product)
-    var i = 0
-    while (i < indexAndValues.size) {
-      val (index, value) = indexAndValues(i)
-      values(index) = value
-      i += 1
-    }
-    new NamedFactor(id, variables, Factor(states, values), belief = Factor(states.clone(), values.clone()))
-  }
-
-  def apply(factor: NamedFactor): NamedFactor = {
-    // TODO: implement this
-    new NamedFactor(factor.id, factor.variables, factor.factor, factor.belief)
-  }
-}
 
 /**
  * Variable class
@@ -506,45 +393,3 @@ object Variable {
     new Variable(Array.fill[Double](size)(elem), isLogScale)
   }
 }
-
-case class NamedVariable(val id: Long, val belief: Variable, val prior: Variable) extends FGVertex {
-  override def processMessage(aggMessage: List[Message]): FGVertex = {
-    assert(aggMessage.length == 1)
-    //aggMessage(0).message.subtractMax()
-    //aggMessage(0).message.exp()
-    //val newBelief = prior.product(aggMessage(0).message)
-    val newBelief = prior.compose(aggMessage(0).message)
-    newBelief.normalize()
-    println("newBelief:" + newBelief.mkString())
-    NamedVariable(id, newBelief, prior)
-  }
-
-  override def message(oldMessage: Message, logScale: Boolean): Message = {
-    //val expOldMessage = Variable(oldMessage.message.cloneValues)
-    //expOldMessage.exp()
-    //val newMessage = belief.divide(expOldMessage)
-    val newMessage = belief.decompose(oldMessage.message)
-    newMessage.normalize()
-    println("newMessage:" + newMessage.mkString())
-    Message(this.id, newMessage, fromFactor = false)
-  }
-
-
-  override def initMessage(varId: Long, logScale: Boolean): Message = {
-    Message(this.id, Variable.fill(this.belief.size)(1.0), fromFactor = false)
-  }
-
-  def mkString(): String = {
-    "id: " + id + ", belief: " + belief.mkString() + ", prior: " + prior.mkString()
-  }
-}
-
-// TODO: reuse NamedVariable class
-//trait Message {
-//  def merge(other: Message): Message
-//}
-
-case class Message(val srcId: Long, val message: Variable, val fromFactor: Boolean) {
-}
-
-class FGEdge(val toDst: Message, val toSrc: Message, val converged: Boolean)

@@ -66,7 +66,7 @@ object BP {
         new FGEdge(toDst, toSrc, diffSrc < eps && diffDst < eps)
       }//.cache()
       //newGraph.edges.foreach(x => {})
-      printEdges(newGraph)
+      //printEdges(newGraph)
       //oldGraph.unpersist(false)
       //graphWithNewVertices.unpersist(false)
       iter += 1
