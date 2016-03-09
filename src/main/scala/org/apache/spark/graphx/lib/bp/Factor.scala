@@ -279,46 +279,6 @@ class Variable private (
   }
 
   /**
-   * Multiply variables
-   *
-   * @param other variable
-   * @return multiplication result
-   */
-  def product(other: Variable): Variable = {
-    operation(other, (x, y) => x * y)
-  }
-
-  /**
-   * Divide variables
-   *
-   * @param other variable
-   * @return division result
-   */
-  def divide(other: Variable): Variable = {
-    operation(other, (x, y) => x / y)
-  }
-
-  /**
-    * Sum variables
-    *
-    * @param other variable
-    * @return division result
-    */
-  def sum(other: Variable): Variable = {
-    operation(other, (x, y) => x + y)
-  }
-
-  /**
-    * Subtract variables
-    *
-    * @param other varibale
-    * @return subtraction result
-    */
-  def subtract(other: Variable): Variable = {
-    operation(other, (x, y) => x - y)
-  }
-
-  /**
    * Make string
    *
    * @return string representation
@@ -340,23 +300,6 @@ class Variable private (
     var i = 0
     while (i < values.length) {
       values(i) = math.log(values(i))
-      i += 1
-    }
-  }
-
-  def exp(): Unit = {
-    var i = 0
-    while (i < values.length) {
-      values(i) = math.exp(values(i))
-      i += 1
-    }
-  }
-
-  def subtractMax(): Unit = {
-    val max = values.max
-    var i = 0
-    while (i < values.length) {
-      values(i) = values(i) - max
       i += 1
     }
   }

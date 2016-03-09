@@ -76,10 +76,27 @@ class FactorSuite extends FunSuite with LocalSparkContext {
     assert(trueMargin2.deep == margin2.deep)
   }
 
-  test("variable product") {
-    val var1 = Variable(Array[Double](1, 2, 3))
-    val var2 = Variable(Array[Double](3, 4, 5))
-    val product = var1.product(var2)
-    assert(product.cloneValues.deep == Array[Double](3, 8, 15).deep, "Product must be (3, 8, 15)")
+  test("variable compose non-log") {
+    val var1 = Variable(Array[Double](1, 2, 3), isLogScale = false)
+    val var2 = Variable(Array[Double](3, 4, 5), isLogScale = false)
+    val compose = var1.compose(var2)
+    assert(compose.cloneValues.deep == Array[Double](3, 8, 15).deep, "Compose must be (3, 8, 15)")
   }
+
+  test("variable compose log") {
+    val var1 = Variable(Array[Double](1, 2, 3), isLogScale = true)
+    val var2 = Variable(Array[Double](3, 4, 5), isLogScale = true)
+    val compose = var1.compose(var2)
+    assert(compose.cloneValues.deep == Array[Double](4, 6, 8).deep, "Compose must be (4, 6, 8)")
+  }
+
+  test("variable compose non-log & log") {
+    val var1 = Variable(Array[Double](1, 2, 3), isLogScale = false)
+    val var2 = Variable(Array[Double](math.log(1), math.log(4), math.log(5)), isLogScale = true)
+    val compose = var1.compose(var2)
+    val eps = 1e-5
+    assert(compose.cloneValues.zip(Array[Double](1, 8, 15)).
+      forall { case (x1: Double, x2: Double) => ((x1 - x2) <= eps) }, "Compose must be (4, 6, 8)")
+  }
+
 }
