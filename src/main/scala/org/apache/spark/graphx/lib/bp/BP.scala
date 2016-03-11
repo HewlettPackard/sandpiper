@@ -30,7 +30,8 @@ object BP {
     var newGraph = graph.mapTriplets { triplet =>
       new FGEdge(triplet.srcAttr.initMessage(triplet.dstAttr.id, logScale),
         triplet.dstAttr.initMessage(triplet.srcAttr.id, logScale), false)
-    }//.cache()
+    }.cache()
+    newGraph.edges.foreachPartition(x => {})
 
     var oldGraph = newGraph
     // main algorithm loop:
@@ -64,17 +65,18 @@ object BP {
         val diffDst = toDst.message.maxDiff(triplet.attr.toDst.message)
         // TODO: different scales log and not log compared with eps
         new FGEdge(toDst, toSrc, diffSrc < eps && diffDst < eps)
-      }//.cache()
-      //newGraph.edges.foreach(x => {})
-      //printEdges(newGraph)
-      //oldGraph.unpersist(false)
+      }.cache()
+      if (iter == 0) {
+        newGraph.edges.foreachPartition(x => {})
+        converged = false
+      } else {
+        converged = newGraph.edges.aggregate(true)((res, edge) =>
+          res && edge.attr.converged, (res1, res2) =>
+            res1 && res2)
+      }
       //graphWithNewVertices.unpersist(false)
+      oldGraph.unpersist(false)
       iter += 1
-      converged = if (iter != 1) newGraph.edges.aggregate(true)(
-        (res, edge) =>
-          res && edge.attr.converged,
-        (res1, res2) =>
-          res1 && res2) else false
     }
     println("Iterations: " + iter + "/" + maxIterations +
       ". Converged: " + converged + " with esp=" + eps)
