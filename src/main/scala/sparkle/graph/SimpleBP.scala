@@ -19,12 +19,13 @@ package sparkle.graph
 
 import java.util.Calendar
 
-import org.apache.spark.Logging
+import org.apache.spark.rdd.RDD
+import org.apache.spark.{SparkContext, SparkConf, Logging}
 import org.apache.spark.graphx.{EdgeDirection, EdgeTriplet, Graph, _}
 
 import scala.reflect.ClassTag
 
-object BeliefPropagation extends Logging  {
+object SimpleBP extends Logging  {
 
   // TODO: check if this is still needed and move to apply
   def runWithIterationNumber
@@ -158,8 +159,34 @@ object BeliefPropagation extends Logging  {
   def runUntilConvergence(graph: Graph[BeliefVertex, BeliefEdge], iter: Int):
   Graph[BeliefVertex, BeliefEdge] =
   {
-    BeliefPropagation(graph, maxIterations=iter)
+    SimpleBP(graph, maxIterations=iter)
   }
+
+  def main(args: Array[String]): Unit = {
+    val conf = if (args.length == 4 && args(3) == "local") {
+      new SparkConf().setAppName("Belief Propagation Application").setMaster("local")
+    } else {
+      new SparkConf().setAppName("Belief Propagation Application")
+    }
+    val sc = new SparkContext(conf)
+    val vertices: RDD[String] = sc.textFile(args(0))
+    val edges: RDD[String] = sc.textFile(args(1))
+    val maxIterations = args(2).toInt
+    println( "edges=" + edges.count())
+    val vertexRDD = vertices.map { line =>
+      val fields = line.split(' ')
+      (fields(0).toLong, BeliefVertex(Array(fields(1).toDouble, fields(2).toDouble), Array(0.0, 0.0), 0.0))
+    }
+    val edgeRDD = edges.map { line =>
+      val fields = line.split(' ')
+      Edge(fields(0).toLong, fields(1).toLong, BeliefEdge(Array(Array(fields(2).toDouble, fields(4).toDouble), Array(fields(3).toDouble, fields(5).toDouble)), Array(1.0, 1.0), Array(1.0, 1.0)))
+    }
+    val graph = Graph(vertexRDD, edgeRDD)
+    val time = System.nanoTime()
+    SimpleBP.runUntilConvergence(graph, maxIterations)
+    println("Total time: " + (System.nanoTime() - time) / 1e9 + " s." )
+  }
+
 }
 /**
  *

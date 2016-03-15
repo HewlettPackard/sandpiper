@@ -40,7 +40,7 @@ class SimpleBPSuite extends FunSuite with LocalSparkContext {
         Edge(2L, 4L, BeliefEdge(Array(Array(1.0, 0.1), Array(0.1, 1.0)), Array(1.0, 1.0), Array(1.0, 1.0)))
       ))
       val graph = Graph(vertices, edges)
-      val bpGraph = BeliefPropagation.runUntilConvergence(graph, 2)
+      val bpGraph = SimpleBP.runUntilConvergence(graph, 2)
       val trueProbabilities = Seq(
         1L -> (1.0 / 2.09 * 1.09, 1.0 / 2.09 * 1.0),
         2L -> (1.0 / 1.1 * 1.0, 1.0 / 1.1 * 0.1),

@@ -41,7 +41,7 @@ class BPPerformance extends FunSuite with LocalSparkContext {
       edgeRDD.count
       val graph = Graph(vertexRDD, edgeRDD)
       val time = System.nanoTime()
-      val bpGraph = BeliefPropagation.runUntilConvergence(graph,50)
+      val bpGraph = SimpleBP.runUntilConvergence(graph,50)
       println("Total time: " + (System.nanoTime() - time) / 1e9 + " s." )
       //bpGraph.vertices.foreach { case(vid, belief) => println(vid + ":" + belief.belief(0) + "," + belief.belief(1))}
     }
