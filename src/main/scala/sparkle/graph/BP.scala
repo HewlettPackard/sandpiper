@@ -15,9 +15,9 @@
  * limitations under the License.
  */
 
-package org.apache.spark.graphx.lib.bp
+package sparkle.graph
 
-import org.apache.spark.graphx.{TripletFields, Graph}
+import org.apache.spark.graphx.{Graph, TripletFields}
 
 object BP {
 

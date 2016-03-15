@@ -15,14 +15,14 @@
  * limitations under the License.
  */
 
-package org.apache.spark.graphx.lib
+package sparkle.graph
 
-import org.apache.spark.LocalSparkContext
 import org.apache.spark.graphx.{Edge, Graph}
 import org.apache.spark.rdd.RDD
 import org.scalatest.FunSuite
+import sparkle.util.LocalSparkContext
 
-class BeliefPropagationPerformance extends FunSuite with LocalSparkContext {
+class BPPerformance extends FunSuite with LocalSparkContext {
 
   test("bp performance test") {
     withSpark { sc =>

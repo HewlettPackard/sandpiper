@@ -15,10 +15,11 @@
  * limitations under the License.
  */
 
-package org.apache.spark
+package sparkle.util
 
-import org.apache.log4j.{Logger, Level}
+import org.apache.log4j.{Level, Logger}
 import org.apache.spark.graphx.GraphXUtils
+import org.apache.spark.{SparkConf, SparkContext}
 
 /**
  * Provides a method to run tests against a {@link SparkContext} variable that is correctly stopped

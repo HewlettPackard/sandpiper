@@ -15,12 +15,11 @@
  * limitations under the License.
  */
 
-package org.apache.spark.lib
+package sparkle.graph
 
-import org.apache.spark.graphx.{Graph, Edge}
-import org.apache.spark.graphx.lib.{BeliefPropagation, BeliefEdge, BeliefVertex}
+import org.apache.spark.graphx.{Edge, Graph}
 import org.apache.spark.rdd.RDD
-import org.apache.spark.{SparkContext, SparkConf}
+import org.apache.spark.{SparkConf, SparkContext}
 
 object Run {
 

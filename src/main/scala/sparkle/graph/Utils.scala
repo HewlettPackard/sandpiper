@@ -15,13 +15,12 @@
  * limitations under the License.
  */
 
-package org.apache.spark.graphx.lib.bp
+package sparkle.graph
 
-import java.io.{FileInputStream, InputStream, InputStreamReader, BufferedReader}
+import java.io.{FileInputStream, InputStream}
 
-import org.apache.spark.graphx.{Graph, Edge}
+import org.apache.spark.graphx.{Edge, Graph}
 import org.apache.spark.{SparkConf, SparkContext}
-import org.apache.spark.rdd.RDD
 
 import scala.collection.mutable.ArrayBuffer
 import scala.io.Source

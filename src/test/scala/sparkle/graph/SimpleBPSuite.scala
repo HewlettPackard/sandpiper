@@ -15,13 +15,13 @@
  * limitations under the License.
  */
 
-package org.apache.spark.graphx.lib
+package sparkle.graph
 
-import org.apache.spark.LocalSparkContext
 import org.apache.spark.graphx._
 import org.scalatest.FunSuite
+import sparkle.util.LocalSparkContext
 
-class BeliefPropagationSuite extends FunSuite with LocalSparkContext {
+class SimpleBPSuite extends FunSuite with LocalSparkContext {
 
   test("simple bp test") {
     // test from the lectures EECS course 6.869, Bill Freeman and Antonio Torralba.

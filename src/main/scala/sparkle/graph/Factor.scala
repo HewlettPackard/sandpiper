@@ -15,8 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.spark.graphx.lib.bp
-
+package sparkle.graph
 
 /**
  *

@@ -15,19 +15,14 @@
  * limitations under the License.
  */
 
-package org.apache.spark.graphx.lib
-
+package sparkle.graph
 
 import java.util.Calendar
 
-import org.apache.spark.graphx.EdgeDirection
-import org.apache.spark.graphx.EdgeTriplet
-import org.apache.spark.graphx.Graph
-import org.apache.spark.graphx._
+import org.apache.spark.Logging
+import org.apache.spark.graphx.{EdgeDirection, EdgeTriplet, Graph, _}
 
 import scala.reflect.ClassTag
-
-import org.apache.spark.Logging
 
 object BeliefPropagation extends Logging  {
 

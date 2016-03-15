@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.spark.graphx.lib.bp
+package sparkle.graph
 
 trait FGVertex {
   val id: Long

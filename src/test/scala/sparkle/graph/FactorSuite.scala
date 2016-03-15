@@ -15,10 +15,10 @@
  * limitations under the License.
  */
 
-package org.apache.spark.graphx.lib.bp
+package sparkle.graph
 
-import org.apache.spark.LocalSparkContext
 import org.scalatest.FunSuite
+import sparkle.util.LocalSparkContext
 
 class FactorSuite extends FunSuite with LocalSparkContext {
 
