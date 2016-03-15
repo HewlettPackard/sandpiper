@@ -104,14 +104,18 @@ object BP {
     } else {
       new SparkConf().setAppName("Belief Propagation Application")
     }
-//    val sc = new SparkContext(conf)
+    val sc = new SparkContext(conf)
     val file = args(0)
     val numIter = args(1)
     val epsilon = args(2)
-    //val graph = Utils.loadLibDAIToFactorGraph(sc, file)
-    //val beliefs = BP(graph)
-    //println(graph.vertices.count())
-    val graph = Utils.loadLibDAI(file)
-    println(graph._1.length)
+    val graph = Utils.loadLibDAIToFactorGraph(sc, file)
+    val beliefs = BP(graph)
+    println(graph.vertices.count())
+    val calculatedProbabilities = beliefs.vertices.flatMap { case(id, vertex) => vertex match {
+      case n: NamedVariable => Seq((n.id, n.belief))
+      case _ => Seq.empty[(Long, Variable)]
+      }
+    }.collect()
+    calculatedProbabilities.foreach { case (id: Long, vr: Variable) => println(id + " " + vr.mkString() )}
   }
 }

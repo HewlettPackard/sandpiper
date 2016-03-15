@@ -17,7 +17,7 @@
 
 package sparkle.graph
 
-trait FGVertex {
+trait FGVertex extends Serializable {
   val id: Long
   def mkString(): String
   def processMessage(aggMessage: List[Message]): FGVertex

@@ -34,7 +34,7 @@ package sparkle.graph
  * @param states number of states
  * @param values values in vector format
  */
-class Factor private (protected val states: Array[Int], protected val values: Array[Double]) {
+class Factor private (protected val states: Array[Int], protected val values: Array[Double]) extends Serializable {
 
   private def value(indices: Seq[Int]): Double = {
     // NB: leftmost index changes the fastest
@@ -204,7 +204,7 @@ object Factor {
  */
 class Variable private (
   protected val values: Array[Double],
-  val isLogScale: Boolean = false) {
+  val isLogScale: Boolean = false) extends Serializable {
 
   // TODO: come up with a single function for elementwise operations given a function
   val size = values.length
