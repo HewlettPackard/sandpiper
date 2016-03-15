@@ -17,13 +17,12 @@
 
 package sparkle.graph
 
-import java.io.{FileInputStream, InputStream}
+import java.io._
 
 import org.apache.spark.graphx.{Edge, Graph}
 import org.apache.spark.{SparkConf, SparkContext}
 
 import scala.collection.mutable.ArrayBuffer
-import scala.io.Source
 
 object Utils {
 
@@ -53,10 +52,10 @@ object Utils {
   }
 
   def loadLibDAI(stream: InputStream): (Array[FGVertex], Array[(Long, Long)]) = {
-    var lines = Source.fromInputStream(stream).getLines()
+    val reader = new BufferedReader(new InputStreamReader(stream))
     // read the number of factors in the file
-    lines = lines.dropWhile(l => l.startsWith("#") || l.size < 1)
-    val numFactors = lines.next.trim.toInt
+    var line = dropWhile(reader, x => x.length < 1 || x.startsWith("#"))
+    val numFactors = line.trim.toInt
     // TODO: check that this structure is OK and size estimation is fair enough
     val factorBuffer = new ArrayBuffer[FGVertex](numFactors * 2)
     val edgeBuffer = new ArrayBuffer[(Long, Long)](numFactors * 10)
@@ -65,21 +64,21 @@ object Utils {
     // TODO: add factor ids in source format as comment e.g. #222
     while (factorCounter < numFactors) {
       // skip to the next block with factors
-      lines = lines.dropWhile(l => !l.startsWith("###"))
-      val factorId = lines.next.split(" ")(1).trim.toLong
-      lines = lines.dropWhile(_.startsWith("#"))
-      val varNum = lines.next.trim.toInt
-      lines = lines.dropWhile(_.startsWith("#"))
-      val varIds = lines.next.split("\\s+").map(_.toLong)
-      lines = lines.dropWhile(_.startsWith("#"))
-      val varNumValues = lines.next.split("\\s+").map(_.toInt)
-      lines = lines.dropWhile(_.startsWith("#"))
-      val nonZeroNum = lines.next.toInt
+      line = dropWhile(reader, l => !l.startsWith("###"))
+      val factorId = line.split(" ")(1).trim.toLong
+      line = dropWhile(reader, l => l.startsWith("#"))
+      val varNum = line.trim.toInt
+      line = dropWhile(reader, l => l.startsWith("#"))
+      val varIds = line.split("\\s+").map(_.toLong)
+      line = dropWhile(reader, l => l.startsWith("#"))
+      val varNumValues = line.split("\\s+").map(_.toInt)
+      line = dropWhile(reader, l => l.startsWith("#"))
+      val nonZeroNum = line.toInt
       val indexAndValues = new Array[(Int, Double)](nonZeroNum)
       var nonZeroCounter = 0
       while (nonZeroCounter < nonZeroNum) {
-        lines = lines.dropWhile(_.startsWith("#"))
-        val indexAndValue = lines.next.split("\\s+")
+        line = dropWhile(reader, l => l.startsWith("#"))
+        val indexAndValue = line.split("\\s+")
         indexAndValues(nonZeroCounter) = (indexAndValue(0).toInt, indexAndValue(1).toDouble)
         nonZeroCounter += 1
       }
@@ -102,6 +101,15 @@ object Utils {
       // increment of factor counter
       factorCounter += 1
     }
+    reader.close()
     (factorBuffer.toArray, edgeBuffer.toArray)
+  }
+
+  private def dropWhile(reader: BufferedReader, condition: String => Boolean): String  = {
+    var line = reader.readLine()
+    while (condition(line)) {
+      line = reader.readLine()
+    }
+    line
   }
 }

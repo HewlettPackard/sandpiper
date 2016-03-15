@@ -17,6 +17,7 @@
 
 package sparkle.graph
 
+import org.apache.spark.{SparkContext, SparkConf}
 import org.apache.spark.graphx.{Graph, TripletFields}
 
 object BP {
@@ -95,5 +96,22 @@ object BP {
 
   def printVertices(graph: Graph[FGVertex, FGEdge]): Unit = {
     graph.vertices.collect.foreach { case (vid, vertex) => println(vertex.mkString())}
+  }
+
+  def main(args: Array[String]): Unit = {
+    val conf = if (args.length == 4 && args(3) == "local") {
+      new SparkConf().setAppName("Belief Propagation Application").setMaster("local")
+    } else {
+      new SparkConf().setAppName("Belief Propagation Application")
+    }
+//    val sc = new SparkContext(conf)
+    val file = args(0)
+    val numIter = args(1)
+    val epsilon = args(2)
+    //val graph = Utils.loadLibDAIToFactorGraph(sc, file)
+    //val beliefs = BP(graph)
+    //println(graph.vertices.count())
+    val graph = Utils.loadLibDAI(file)
+    println(graph._1.length)
   }
 }
