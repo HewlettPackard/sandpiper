@@ -35,7 +35,6 @@ object Utils {
 
   def loadLibDAIToFactorGraph(sc: SparkContext, path: String): Graph[FGVertex, Boolean] = {
     val files = sc.binaryFiles(path)
-    println(files.count())
     val x = sc.binaryFiles(path).map { case (_, stream) =>
         loadLibDAI(stream.open())
     }

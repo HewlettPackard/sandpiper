@@ -32,9 +32,9 @@ class UtilSuite extends FunSuite with LocalSparkContext {
     assert(numFactors == 3 && totalNum == 7, "Graph7.fg contains 3 complex factors and 4 variables")
   }
 
-  test("read file from RDD") {
+  test("read file into RDD") {
     withSpark { sc =>
-      val graph = Utils.loadLibDAIToFactorGraph(sc, "c:/ulanov/dev/belief-propagation/data/factor")
+      val graph = Utils.loadLibDAIToFactorGraph(sc, "data/factor/graph7.fg")
       val totalNum = graph.vertices.count()
       val numFactors = graph.vertices.map { vertex => vertex._2 match {
           case f: NamedFactor => 1
@@ -44,5 +44,19 @@ class UtilSuite extends FunSuite with LocalSparkContext {
         "Graph7.fg contains 3 complex factors and 4 variables")
     }
   }
+
   // TODO: make test with reading several files
+  test("read several files into RDD") {
+    withSpark { sc =>
+      val graph = Utils.loadLibDAIToFactorGraph(sc, "data/factor/split")
+      val totalNum = graph.vertices.count()
+      val numFactors = graph.vertices.map { vertex => vertex._2 match {
+        case f: NamedFactor => 1
+        case _ => 0
+      }}.sum().toLong
+      assert(numFactors == 3 && totalNum == 7,
+        "Graph7.fg contains 3 complex factors and 4 variables")
+    }
+  }
+
 }
