@@ -99,6 +99,9 @@ object BP {
   }
 
   def main(args: Array[String]): Unit = {
+    for (i <- 0 until args.length) {
+      println(i + "th par: " + args(i))
+    }
     val conf = if (args.length == 4 && args(3) == "local") {
       new SparkConf().setAppName("Belief Propagation Application").setMaster("local")
     } else {
@@ -106,16 +109,16 @@ object BP {
     }
     val sc = new SparkContext(conf)
     val file = args(0)
-    val numIter = args(1)
-    val epsilon = args(2)
+    val numIter = args(1).toInt
+    val epsilon = args(2).toDouble
     val graph = Utils.loadLibDAIToFactorGraph(sc, file)
-    val beliefs = BP(graph)
+    val beliefs = BP(graph, maxIterations = numIter, eps = epsilon)
     println(graph.vertices.count())
     val calculatedProbabilities = beliefs.vertices.flatMap { case(id, vertex) => vertex match {
       case n: NamedVariable => Seq((n.id, n.belief))
       case _ => Seq.empty[(Long, Variable)]
       }
-    }.collect()
+    }.take(20)
     calculatedProbabilities.foreach { case (id: Long, vr: Variable) => println(id + " " + vr.mkString() )}
   }
 }

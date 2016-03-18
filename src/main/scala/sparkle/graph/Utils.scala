@@ -106,6 +106,7 @@ object Utils {
 
   private def dropWhile(reader: BufferedReader, condition: String => Boolean): String  = {
     var line = reader.readLine()
+    if (line == null) throw new IOException("More data expected!")
     while (condition(line)) {
       line = reader.readLine()
     }
