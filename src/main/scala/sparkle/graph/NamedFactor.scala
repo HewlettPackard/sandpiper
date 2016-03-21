@@ -21,7 +21,7 @@ trait FGVertex extends Serializable {
   val id: Long
   def mkString(): String
   def processMessage(aggMessage: List[Message]): FGVertex
-  def message(oldMessage: Message, logScale: Boolean): Message
+  def sendMessage(oldMessage: Message, logScale: Boolean): Message
   def initMessage(varId: Long, logScale: Boolean): Message
 }
 
@@ -76,7 +76,7 @@ class NamedFactor(val id: Long, val variables: Array[Long], val factor: Factor, 
     NamedFactor(id, variables, factor, newBelief)
   }
 
-  override def message(oldMessage: Message, logScale: Boolean): Message = {
+  override def sendMessage(oldMessage: Message, logScale: Boolean): Message = {
     val index = varIndexById(oldMessage.srcId)
     val newMessage = Variable(belief.marginalOfDivision(oldMessage.message, index))
     // TODO: move norm to a better place (no mutation)
@@ -140,7 +140,7 @@ case class NamedVariable(val id: Long, val belief: Variable, val prior: Variable
     NamedVariable(id, newBelief, prior)
   }
 
-  override def message(oldMessage: Message, logScale: Boolean): Message = {
+  override def sendMessage(oldMessage: Message, logScale: Boolean): Message = {
     val newMessage = belief.decompose(oldMessage.message)
     // TODO: move norm to a better place (no mutation)
     newMessage.normalize()

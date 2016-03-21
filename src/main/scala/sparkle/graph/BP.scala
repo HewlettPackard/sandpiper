@@ -60,8 +60,8 @@ object BP {
       //graphWithNewVertices.edges.foreachPartition(x => {})
       oldGraph = newGraph
       newGraph = graphWithNewVertices.mapTriplets { triplet =>
-        val toSrc = triplet.dstAttr.message(triplet.attr.toDst, logScale)
-        val toDst = triplet.srcAttr.message(triplet.attr.toSrc, logScale)
+        val toSrc = triplet.dstAttr.sendMessage(triplet.attr.toDst, logScale)
+        val toDst = triplet.srcAttr.sendMessage(triplet.attr.toSrc, logScale)
         val diffSrc = toSrc.message.maxDiff(triplet.attr.toSrc.message)
         val diffDst = toDst.message.maxDiff(triplet.attr.toDst.message)
         // TODO: different scales log and not log compared with eps
