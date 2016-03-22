@@ -71,14 +71,16 @@ class NamedFactor(val id: Long, val variables: Array[Long], val factor: Factor, 
     for(message <- aggMessage) {
       assert(message.message.isLogScale == false, "Factor should not receive logscale messages")
       val index = varIndexById(message.srcId)
-      newBelief = newBelief.product(message.message, index)
+      // newBelief = newBelief.product(message.message, index)
+      newBelief = newBelief.compose(message.message, index)
     }
     NamedFactor(id, variables, factor, newBelief)
   }
 
   override def sendMessage(oldMessage: Message, logScale: Boolean): Message = {
     val index = varIndexById(oldMessage.srcId)
-    val newMessage = Variable(belief.marginalOfDivision(oldMessage.message, index))
+    // val newMessage = Variable(belief.marginalOfDivision(oldMessage.message, index))
+    val newMessage = Variable(belief.decompose(oldMessage.message, index))
     // TODO: move norm to a better place (no mutation)
     newMessage.normalize()
     // only for messages from Factors

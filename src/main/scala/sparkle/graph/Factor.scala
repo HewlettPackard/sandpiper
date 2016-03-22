@@ -116,6 +116,62 @@ class Factor private (protected val states: Array[Int], protected val values: Ar
   }
 
   /**
+    * Returns a composition of factor and a message.
+    * Handles zero values the same as message composition
+    *
+    * @param message
+    * @param index
+    * @return
+    */
+  def compose(message: Variable, index: Int): Factor = {
+    require(index >= 0, "Index must be non-zero")
+    require(states(index) == message.size,
+      "Number of states for variable and message must be equal")
+    val result = new Array[Double](length)
+    val product = states.slice(0, index).product
+    for (i <- 0 until values.length) {
+      val indexInTargetState = (i / product) % states(index)
+      def f = (x: Double, y: Double) => {
+        if (x == 0 && y > 0) -y
+        else if (x > 0 && y == 0) -x
+        else if (x < 0 && y < 0) 0
+        else x * y
+      }
+      result(i) = f(values(i), message.state(indexInTargetState))
+    }
+    Factor(states, result)
+
+  }
+
+  /**
+    * Returns decomposition of factor and a message
+    * Handles zero values the same as message decomposition
+    *
+    * @param message
+    * @param index
+    * @return
+    */
+  def decompose(message: Variable, index: Int): Array[Double] = {
+    require(index >= 0, "Index must be non-zero")
+    require(states(index) == message.size,
+      "Number of states for variable and message must be equal")
+    val result = new Array[Double](states(index))
+    val product = states.slice(0, index).product
+    for (i <- 0 until values.length) {
+      val indexInTargetState = (i / product) % states(index)
+      def f = (x: Double, y: Double) => {
+        if (x == 0) 0
+        else if (x < 0 && y == 0) -x
+        else if (x < 0 && y > 0) 0
+        else if (x > 0 && y <= 0) throw new UnsupportedOperationException()
+        else x / y
+      }
+      result(indexInTargetState) += f(values(i), message.state(indexInTargetState))
+    }
+    result
+  }
+
+  /**
    * Division of a factor and a message
  *
    * @param message message to a variable
@@ -257,18 +313,21 @@ class Variable private (
       case (false, true, true) => (x: Double, y: Double) => x * math.exp(y)
       case (false, false, true) =>
         (x: Double, y: Double) => {
-          if (x <= 0 && y <= 0) 0d
-          else if (x > 0 && y > 0) x * y
-          else -math.max(x, y)
+          if (x == 0 && y > 0) -y
+          else if (x > 0 && y == 0) -x
+          else if (x < 0 && y < 0) 0
+          else x * y
         }
       case (true, false, true) => (x: Double, y: Double) => x + math.log(y)
       case (true, true, false) => (x: Double, y: Double) => x - y
       case (false, true, false) => (x: Double, y: Double) => x / math.exp(y)
       case (false, false, false) =>
         (x: Double, y: Double) => {
-          if (x <= 0 && y <= 0) 0d
-          else if (x > 0 && y > 0) x / y
-          else -math.max(x, y)
+          if (x == 0) 0
+          else if (x < 0 && y == 0) -x
+          else if (x < 0 && y > 0) 0
+          else if (x > 0 && y <= 0) throw new UnsupportedOperationException()
+          else x / y
         }
       case (true, false, false) => (x: Double, y: Double) => x - math.log(y)
     }
@@ -310,6 +369,7 @@ class Variable private (
 
   def normalize(): Unit = {
     val sum = values.sum
+    if (sum == 0) return
     var i = 0
     while (i < values.length) {
       values(i) = values(i) / sum
