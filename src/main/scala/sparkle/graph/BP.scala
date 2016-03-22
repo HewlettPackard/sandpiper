@@ -17,6 +17,7 @@
 
 package sparkle.graph
 
+import org.apache.log4j.{Level, Logger}
 import org.apache.spark.{SparkContext, SparkConf}
 import org.apache.spark.graphx.{Graph, TripletFields}
 
@@ -108,11 +109,13 @@ object BP {
       new SparkConf().setAppName("Belief Propagation Application")
     }
     val sc = new SparkContext(conf)
+    Logger.getLogger("org").setLevel(Level.OFF)
+    Logger.getLogger("akka").setLevel(Level.OFF)
     val file = args(0)
     val numIter = args(1).toInt
     val epsilon = args(2).toDouble
     val graph = Utils.loadLibDAIToFactorGraph(sc, file)
-    val beliefs = BP(graph, maxIterations = numIter, eps = epsilon)
+    val beliefs = BP(graph, maxIterations = numIter, eps = epsilon, logScale = false)
     println(graph.vertices.count())
     val calculatedProbabilities = beliefs.vertices.flatMap { case(id, vertex) => vertex match {
       case n: NamedVariable => Seq((n.id, n.belief))

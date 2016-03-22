@@ -252,13 +252,24 @@ class Variable private (
     var i = 0
     def f: (Double, Double) => Double =
       (this.isLogScale, other.isLogScale, compose) match {
-      case (true, true, true) => (x: Double, y: Double) => x + y
+      case (true, true, true) =>
+        (x: Double, y: Double) => x + y
       case (false, true, true) => (x: Double, y: Double) => x * math.exp(y)
-      case (false, false, true) => (x: Double, y: Double) => x * y
+      case (false, false, true) =>
+        (x: Double, y: Double) => {
+          if (x <= 0 && y <= 0) 0d
+          else if (x > 0 && y > 0) x * y
+          else -math.max(x, y)
+        }
       case (true, false, true) => (x: Double, y: Double) => x + math.log(y)
       case (true, true, false) => (x: Double, y: Double) => x - y
       case (false, true, false) => (x: Double, y: Double) => x / math.exp(y)
-      case (false, false, false) => (x: Double, y: Double) => x / y
+      case (false, false, false) =>
+        (x: Double, y: Double) => {
+          if (x <= 0 && y <= 0) 0d
+          else if (x > 0 && y > 0) x / y
+          else -math.max(x, y)
+        }
       case (true, false, false) => (x: Double, y: Double) => x - math.log(y)
     }
     while (i < size) {
