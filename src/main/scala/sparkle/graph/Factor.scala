@@ -368,9 +368,14 @@ class Variable private (
   }
 
   def normalize(): Unit = {
-    val sum = values.sum
-    if (sum == 0) return
     var i = 0
+    var sum: Double = 0
+    while (i < values.length) {
+      if (values(i) > 0) sum += values(i) else values(i) = 0
+      i += 1
+    }
+    if (sum == 0) return
+    i = 0
     while (i < values.length) {
       values(i) = values(i) / sum
       i += 1
