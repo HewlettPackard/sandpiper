@@ -229,7 +229,18 @@ class Variable private (
   }
 
   /**
-    * Operation on two variables
+    * Returns the result of composition or decomposition of two messages.
+    * Messages can be either normal or log-scale. The type of the result
+    * is the same as the first message.
+    * Handling zero values:
+    * 1) Composition. If zero state is present in one of the messages,
+    * while the other contains non-reversed value,
+    * then the result state equals to the non-zero state with reversed sign.
+    * If the other contains reversed value or zero, then the result will be zero.
+    * 2) Decomposition. If zero state is present in the second message,
+    * then the resulting state will be either zero if state in the first
+    * message is not reversed or zero, or minus state of the first message overwise.
+    * 3) Reversed sign for normal type is negative, for log-scale it is positive.
     *
     * @param other variable
     * @param compose compose or decompose
