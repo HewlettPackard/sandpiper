@@ -17,6 +17,22 @@
 
 package sparkle.graph
 
+object FactorMath {
+  def compose(x: Double, y: Double): Double = {
+    if (x == 0 && y > 0) -y
+    else if (x > 0 && y == 0) -x
+    else if (x < 0 && y < 0) 0
+    else x * y
+  }
+  def decompose(source: Double, x: Double): Double = {
+    if (source == 0) 0
+    else if (source < 0 && x == 0) -source
+    else if (source < 0 && x > 0) 0
+    else if (source > 0 && x <= 0) throw new UnsupportedOperationException()
+    else source / x
+  }
+}
+
 /**
  *
  * Representation of a factor
@@ -131,13 +147,7 @@ class Factor private (protected val states: Array[Int], protected val values: Ar
     val product = states.slice(0, index).product
     for (i <- 0 until values.length) {
       val indexInTargetState = (i / product) % states(index)
-      def f = (x: Double, y: Double) => {
-        if (x == 0 && y > 0) -y
-        else if (x > 0 && y == 0) -x
-        else if (x < 0 && y < 0) 0
-        else x * y
-      }
-      result(i) = f(values(i), message.state(indexInTargetState))
+      result(i) = FactorMath.compose(values(i), message.state(indexInTargetState))
     }
     Factor(states, result)
 
@@ -159,14 +169,7 @@ class Factor private (protected val states: Array[Int], protected val values: Ar
     val product = states.slice(0, index).product
     for (i <- 0 until values.length) {
       val indexInTargetState = (i / product) % states(index)
-      def f = (x: Double, y: Double) => {
-        if (x == 0) 0
-        else if (x < 0 && y == 0) -x
-        else if (x < 0 && y > 0) 0
-        else if (x > 0 && y <= 0) throw new UnsupportedOperationException()
-        else x / y
-      }
-      result(indexInTargetState) += f(values(i), message.state(indexInTargetState))
+      result(indexInTargetState) += FactorMath.decompose(values(i), message.state(indexInTargetState))
     }
     result
   }
@@ -311,24 +314,11 @@ class Variable private (
       case (true, true, true) =>
         (x: Double, y: Double) => x + y
       case (false, true, true) => (x: Double, y: Double) => x * math.exp(y)
-      case (false, false, true) =>
-        (x: Double, y: Double) => {
-          if (x == 0 && y > 0) -y
-          else if (x > 0 && y == 0) -x
-          else if (x < 0 && y < 0) 0
-          else x * y
-        }
+      case (false, false, true) => (x: Double, y: Double) => FactorMath.compose(x, y)
       case (true, false, true) => (x: Double, y: Double) => x + math.log(y)
       case (true, true, false) => (x: Double, y: Double) => x - y
       case (false, true, false) => (x: Double, y: Double) => x / math.exp(y)
-      case (false, false, false) =>
-        (x: Double, y: Double) => {
-          if (x == 0) 0
-          else if (x < 0 && y == 0) -x
-          else if (x < 0 && y > 0) 0
-          else if (x > 0 && y <= 0) throw new UnsupportedOperationException()
-          else x / y
-        }
+      case (false, false, false) => (x: Double, y: Double) => FactorMath.decompose(x, y)
       case (true, false, false) => (x: Double, y: Double) => x - math.log(y)
     }
     while (i < size) {
