@@ -24,12 +24,25 @@ object FactorMath {
     else if (x < 0 && y < 0) 0
     else x * y
   }
+  def logCompose(x: Double, y: Double): Double = {
+    if (x == Double.NegativeInfinity && y < 0) -y
+    else if (x < 0 && y == Double.NegativeInfinity) -x
+    else if (x > 0 && y > 0) Double.NegativeInfinity
+    else x + y
+  }
   def decompose(source: Double, x: Double): Double = {
     if (source == 0) 0
     else if (source < 0 && x == 0) -source
     else if (source < 0 && x > 0) 0
     else if (source > 0 && x <= 0) throw new UnsupportedOperationException()
     else source / x
+  }
+  def logDecompose(source: Double, x: Double): Double = {
+    if (source == Double.NegativeInfinity) Double.NegativeInfinity
+    else if (source > 0 && x == Double.NegativeInfinity) -source
+    else if (source > 0 && x < 0) Double.NegativeInfinity
+    else if (source < 0 && (x > 0 || x == Double.NegativeInfinity) ) throw new UnsupportedOperationException()
+    else source - x
   }
 }
 
@@ -311,12 +324,11 @@ class Variable private (
     var i = 0
     def f: (Double, Double) => Double =
       (this.isLogScale, other.isLogScale, compose) match {
-      case (true, true, true) =>
-        (x: Double, y: Double) => x + y
+      case (true, true, true) => (x: Double, y: Double) => FactorMath.logCompose(x, y)
       case (false, true, true) => (x: Double, y: Double) => x * math.exp(y)
       case (false, false, true) => (x: Double, y: Double) => FactorMath.compose(x, y)
       case (true, false, true) => (x: Double, y: Double) => x + math.log(y)
-      case (true, true, false) => (x: Double, y: Double) => x - y
+      case (true, true, false) => (x: Double, y: Double) => FactorMath.logDecompose(x ,y)
       case (false, true, false) => (x: Double, y: Double) => x / math.exp(y)
       case (false, false, false) => (x: Double, y: Double) => FactorMath.decompose(x, y)
       case (true, false, false) => (x: Double, y: Double) => x - math.log(y)
