@@ -21,8 +21,8 @@ trait FGVertex extends Serializable {
   val id: Long
   def mkString(): String
   def processMessage(aggMessage: List[Message]): FGVertex
-  def sendMessage(oldMessage: Message, logScale: Boolean): Message
-  def initMessage(varId: Long, logScale: Boolean): Message
+  def sendMessage(oldMessage: Message): Message
+  def initMessage(varId: Long): Message
 }
 
 class NamedFactor(val id: Long, val variables: Array[Long], val factor: Factor, val belief: Factor)
@@ -69,27 +69,21 @@ class NamedFactor(val id: Long, val variables: Array[Long], val factor: Factor, 
     assert(aggMessage.length > 1)
     var newBelief = factor
     for(message <- aggMessage) {
-      assert(message.message.isLogScale == false, "Factor should not receive logscale messages")
       val index = varIndexById(message.srcId)
       newBelief = newBelief.compose(message.message, index)
     }
     NamedFactor(id, variables, factor, newBelief)
   }
 
-  override def sendMessage(oldMessage: Message, logScale: Boolean): Message = {
+  override def sendMessage(oldMessage: Message): Message = {
     val index = varIndexById(oldMessage.srcId)
     val newMessage = Variable(belief.decompose(oldMessage.message, index))
-    // TODO: move norm to a better place (no mutation)
-    newMessage.normalize()
-    // only for messages from Factors
-    // TODO: move log to a better place (no mutation)
-    if (logScale) newMessage.log()
-    Message(this.id, Variable(newMessage.cloneValues, logScale), fromFactor = true)
+    Message(this.id, Variable(newMessage.cloneValues), fromFactor = true)
   }
 
-  override def initMessage(varId: Long, logScale: Boolean): Message = {
+  override def initMessage(varId: Long): Message = {
     // TODO: generate message with zeros (that is log of 1s)
-    Message(this.id, Variable.fill(this.length(varId), logScale)(1.0), fromFactor = true)
+    Message(this.id, Variable.fill(this.length(varId))(1.0), fromFactor = true)
   }
 }
 
@@ -140,7 +134,7 @@ case class NamedVariable(val id: Long, val belief: Variable, val prior: Variable
     NamedVariable(id, newBelief, prior)
   }
 
-  override def sendMessage(oldMessage: Message, logScale: Boolean): Message = {
+  override def sendMessage(oldMessage: Message): Message = {
     val newMessage = belief.decompose(oldMessage.message)
     // TODO: move norm to a better place (no mutation)
     newMessage.normalize()
@@ -148,7 +142,7 @@ case class NamedVariable(val id: Long, val belief: Variable, val prior: Variable
   }
 
 
-  override def initMessage(varId: Long, logScale: Boolean): Message = {
+  override def initMessage(varId: Long): Message = {
     Message(this.id, Variable.fill(this.belief.size)(1.0), fromFactor = false)
   }
 

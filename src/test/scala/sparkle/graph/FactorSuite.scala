@@ -76,74 +76,74 @@ class FactorSuite extends FunSuite with LocalSparkContext {
     assert(trueMargin2.deep == margin2.deep)
   }
 
-  test("variable compose non-log") {
-    val var1 = Variable(Array[Double](1, 2, 3), isLogScale = false)
-    val var2 = Variable(Array[Double](3, 4, 5), isLogScale = false)
-    val compose = var1.compose(var2)
-    assert(compose.cloneValues.deep == Array[Double](3, 8, 15).deep, "Compose must be (3, 8, 15)")
-    val varZero = Variable(Array[Double](0, 4, 5), isLogScale = false)
-    val compose2 = var1.compose(varZero)
-    assert(compose2.cloneValues.deep == Array[Double](-1, 8, 15).deep, "Compose must be (3, -2, 15)")
-    val varMinus1 = Variable(Array[Double](-3, 4, 5), isLogScale = false)
-    val compose3 = var1.compose(varMinus1)
-    assert(compose3.cloneValues.deep == Array[Double](-3, 8, 15).deep, "Compose must be (-3, 8, 15)")
-    val varMinus2 = Variable(Array[Double](-3, 4, 5), isLogScale = false)
-    val compose4 = varMinus1.compose(varMinus2)
-    assert(compose4.cloneValues.deep == Array[Double](0, 16, 25).deep, "Compose must be (0, 16, 25)")
-    val compose5 = varMinus1.compose(varZero)
-    assert(compose5.cloneValues.deep == Array[Double](0, 16, 25).deep, "Compose must be (0, 16, 25)")
-  }
-
-  test("variable decompose non-log") {
-    val var1 = Variable(Array[Double](6, 8, 10), isLogScale = false)
-    val var2 = Variable(Array[Double](3, 4, 5), isLogScale = false)
-    val decompose = var1.decompose(var2)
-    assert(decompose.cloneValues.deep == Array[Double](2, 2, 2).deep, "Compose must be (2, 2, 2)")
-    val varMinus1 = Variable(Array[Double](-3, 4, 5), isLogScale = false)
-    val decompose1 = varMinus1.decompose(var2)
-    assert(decompose1.cloneValues.deep == Array[Double](0, 1, 1).deep, "Compose must be (0, 1, 1)")
-    val varZero = Variable(Array[Double](0, 4, 5), isLogScale = false)
-    val decompose2 = varMinus1.decompose(varZero)
-    assert(decompose2.cloneValues.deep == Array[Double](3, 1, 1).deep, "Compose must be (3, 1, 1)")
-  }
-
-  test("variable compose log") {
-    val var1 = Variable(Array[Double](1, 2, 3), isLogScale = true)
-    val var2 = Variable(Array[Double](3, 4, 5), isLogScale = true)
-    val compose1 = var1.compose(var2)
-    assert(compose1.cloneValues.deep == Array[Double](4, 6, 8).deep, "Compose must be (4, 6, 8)")
-  }
-
-  test("variable compose non-log & log") {
-    val var1 = Variable(Array[Double](1, 2, 3), isLogScale = false)
-    val var2 = Variable(Array[Double](math.log(1), math.log(4), math.log(5)), isLogScale = true)
-    val compose = var1.compose(var2)
-    val eps = 1e-5
-    assert(compose.cloneValues.zip(Array[Double](1, 8, 15)).
-      forall { case (x1: Double, x2: Double) => ((x1 - x2) <= eps) }, "Compose must be (4, 6, 8)")
-  }
-
-  test("test compose normalization norm(X:*Z) == norm(norm(X:*Y):* Z) :/ Y") {
-    val x = Variable(Array[Double](0.2, 0.4, 0.4), isLogScale = false)
-    val y = Variable(Array[Double](0.0, 0.4, 0.6), isLogScale = false)
-    val z = Variable(Array[Double](0.4, 0.2, 0.4), isLogScale = false)
-    val xy = x.compose(y)
-    xy.trueNormalize()
-    val belief = xy.compose(z)
-    belief.trueNormalize()
-    val xz = x.compose(z)
-    xz.trueNormalize()
-    val by = belief.decompose(y)
-    by.trueNormalize()
-    println(xz.getTrueValue().mkString() + " " + by.getTrueValue().mkString())
-    val bz = belief.decompose(z)
-    bz.trueNormalize()
-    println(xy.getTrueValue().mkString() + " " + bz.getTrueValue().mkString())
-    val yz = y.compose(z)
-    yz.trueNormalize()
-    val bx = belief.decompose(x)
-    bx.trueNormalize()
-    println(yz.getTrueValue().mkString() + " " + bx.getTrueValue().mkString())
-  }
+//  test("variable compose non-log") {
+//    val var1 = Variable(Array[Double](1, 2, 3), isLogScale = false)
+//    val var2 = Variable(Array[Double](3, 4, 5), isLogScale = false)
+//    val compose = var1.compose(var2)
+//    assert(compose.cloneValues.deep == Array[Double](3, 8, 15).deep, "Compose must be (3, 8, 15)")
+//    val varZero = Variable(Array[Double](0, 4, 5), isLogScale = false)
+//    val compose2 = var1.compose(varZero)
+//    assert(compose2.cloneValues.deep == Array[Double](-1, 8, 15).deep, "Compose must be (3, -2, 15)")
+//    val varMinus1 = Variable(Array[Double](-3, 4, 5), isLogScale = false)
+//    val compose3 = var1.compose(varMinus1)
+//    assert(compose3.cloneValues.deep == Array[Double](-3, 8, 15).deep, "Compose must be (-3, 8, 15)")
+//    val varMinus2 = Variable(Array[Double](-3, 4, 5), isLogScale = false)
+//    val compose4 = varMinus1.compose(varMinus2)
+//    assert(compose4.cloneValues.deep == Array[Double](0, 16, 25).deep, "Compose must be (0, 16, 25)")
+//    val compose5 = varMinus1.compose(varZero)
+//    assert(compose5.cloneValues.deep == Array[Double](0, 16, 25).deep, "Compose must be (0, 16, 25)")
+//  }
+//
+//  test("variable decompose non-log") {
+//    val var1 = Variable(Array[Double](6, 8, 10), isLogScale = false)
+//    val var2 = Variable(Array[Double](3, 4, 5), isLogScale = false)
+//    val decompose = var1.decompose(var2)
+//    assert(decompose.cloneValues.deep == Array[Double](2, 2, 2).deep, "Compose must be (2, 2, 2)")
+//    val varMinus1 = Variable(Array[Double](-3, 4, 5), isLogScale = false)
+//    val decompose1 = varMinus1.decompose(var2)
+//    assert(decompose1.cloneValues.deep == Array[Double](0, 1, 1).deep, "Compose must be (0, 1, 1)")
+//    val varZero = Variable(Array[Double](0, 4, 5), isLogScale = false)
+//    val decompose2 = varMinus1.decompose(varZero)
+//    assert(decompose2.cloneValues.deep == Array[Double](3, 1, 1).deep, "Compose must be (3, 1, 1)")
+//  }
+//
+//  test("variable compose log") {
+//    val var1 = Variable(Array[Double](1, 2, 3), isLogScale = true)
+//    val var2 = Variable(Array[Double](3, 4, 5), isLogScale = true)
+//    val compose1 = var1.compose(var2)
+//    assert(compose1.cloneValues.deep == Array[Double](4, 6, 8).deep, "Compose must be (4, 6, 8)")
+//  }
+//
+//  test("variable compose non-log & log") {
+//    val var1 = Variable(Array[Double](1, 2, 3), isLogScale = false)
+//    val var2 = Variable(Array[Double](math.log(1), math.log(4), math.log(5)), isLogScale = true)
+//    val compose = var1.compose(var2)
+//    val eps = 1e-5
+//    assert(compose.cloneValues.zip(Array[Double](1, 8, 15)).
+//      forall { case (x1: Double, x2: Double) => ((x1 - x2) <= eps) }, "Compose must be (4, 6, 8)")
+//  }
+//
+//  test("test compose normalization norm(X:*Z) == norm(norm(X:*Y):* Z) :/ Y") {
+//    val x = Variable(Array[Double](0.2, 0.4, 0.4), isLogScale = false)
+//    val y = Variable(Array[Double](0.0, 0.4, 0.6), isLogScale = false)
+//    val z = Variable(Array[Double](0.4, 0.2, 0.4), isLogScale = false)
+//    val xy = x.compose(y)
+//    xy.trueNormalize()
+//    val belief = xy.compose(z)
+//    belief.trueNormalize()
+//    val xz = x.compose(z)
+//    xz.trueNormalize()
+//    val by = belief.decompose(y)
+//    by.trueNormalize()
+//    println(xz.getTrueValue().mkString() + " " + by.getTrueValue().mkString())
+//    val bz = belief.decompose(z)
+//    bz.trueNormalize()
+//    println(xy.getTrueValue().mkString() + " " + bz.getTrueValue().mkString())
+//    val yz = y.compose(z)
+//    yz.trueNormalize()
+//    val bx = belief.decompose(x)
+//    bx.trueNormalize()
+//    println(yz.getTrueValue().mkString() + " " + bx.getTrueValue().mkString())
+//  }
 
 }

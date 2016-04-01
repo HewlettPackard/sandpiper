@@ -24,25 +24,12 @@ object FactorMath {
     else if (x < 0 && y < 0) 0
     else x * y
   }
-  def logCompose(x: Double, y: Double): Double = {
-    if (x == Double.NegativeInfinity && y < 0) -y
-    else if (x < 0 && y == Double.NegativeInfinity) -x
-    else if (x > 0 && y > 0) Double.NegativeInfinity
-    else x + y
-  }
   def decompose(source: Double, x: Double): Double = {
     if (source == 0) 0
     else if (source < 0 && x == 0) -source
     else if (source < 0 && x > 0) 0
     else if (source > 0 && x <= 0) throw new UnsupportedOperationException()
     else source / x
-  }
-  def logDecompose(source: Double, x: Double): Double = {
-    if (source == Double.NegativeInfinity) Double.NegativeInfinity
-    else if (source > 0 && x == Double.NegativeInfinity) -source
-    else if (source > 0 && x < 0) Double.NegativeInfinity
-    else if (source < 0 && (x > 0 || x == Double.NegativeInfinity) ) throw new UnsupportedOperationException()
-    else source - x
   }
   def trueNormalize(array: Array[Double]): Unit = {
     var i = 0
@@ -290,8 +277,7 @@ object Factor {
  * @param values values
  */
 class Variable private (
-  protected val values: Array[Double],
-  val isLogScale: Boolean = false) extends Serializable {
+  protected val values: Array[Double]) extends Serializable {
 
   // TODO: come up with a single function for elementwise operations given a function
   val size = values.length
@@ -338,23 +324,17 @@ class Variable private (
     val result = new Array[Double](size)
     var i = 0
     def f: (Double, Double) => Double =
-      (this.isLogScale, other.isLogScale, compose) match {
-      case (true, true, true) => (x: Double, y: Double) => FactorMath.logCompose(x, y)
-      case (false, true, true) => (x: Double, y: Double) => x * math.exp(y)
-      case (false, false, true) => (x: Double, y: Double) => FactorMath.compose(x, y)
-      case (true, false, true) => (x: Double, y: Double) => x + math.log(y)
-      case (true, true, false) => (x: Double, y: Double) => FactorMath.logDecompose(x ,y)
-      case (false, true, false) => (x: Double, y: Double) => x / math.exp(y)
-      case (false, false, false) => (x: Double, y: Double) => FactorMath.decompose(x, y)
-      case (true, false, false) => (x: Double, y: Double) => x - math.log(y)
+      compose match {
+      case true => (x: Double, y: Double) => FactorMath.compose(x, y)
+      case false => (x: Double, y: Double) => FactorMath.decompose(x, y)
     }
     while (i < size) {
         result(i) = f(this.values(i), other.values(i))
       i += 1
     }
     // do normalization
-    if (!this.isLogScale) FactorMath.trueNormalize(result)
-    new Variable(result, this.isLogScale)
+    FactorMath.trueNormalize(result)
+    new Variable(result)
   }
 
   /**
@@ -424,7 +404,7 @@ class Variable private (
       if (x(i) < 0) x(i) = 0
       i += 1
     }
-    val trueValue = new Variable(x, isLogScale = false)
+    val trueValue = new Variable(x)
     trueValue.trueNormalize()
     trueValue
   }
@@ -469,11 +449,11 @@ class Variable private (
 
 object Variable {
 
-  def apply(values: Array[Double], isLogScale: Boolean = false): Variable = {
-    new Variable(values, isLogScale)
+  def apply(values: Array[Double]): Variable = {
+    new Variable(values)
   }
 
   def fill(size: Int, isLogScale: Boolean = false)(elem: => Double): Variable = {
-    new Variable(Array.fill[Double](size)(elem), isLogScale)
+    new Variable(Array.fill[Double](size)(elem))
   }
 }

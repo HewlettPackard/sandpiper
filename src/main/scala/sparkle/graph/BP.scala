@@ -30,8 +30,8 @@ object BP {
   logScale: Boolean = true): Graph[FGVertex, FGEdge] = {
     // put initial messages on edges, they will be mutated every iteration
     var newGraph = graph.mapTriplets { triplet =>
-      new FGEdge(triplet.srcAttr.initMessage(triplet.dstAttr.id, logScale),
-        triplet.dstAttr.initMessage(triplet.srcAttr.id, logScale), false)
+      new FGEdge(triplet.srcAttr.initMessage(triplet.dstAttr.id),
+        triplet.dstAttr.initMessage(triplet.srcAttr.id), false)
     }.cache()
     newGraph.edges.foreachPartition(x => {})
 
@@ -61,8 +61,8 @@ object BP {
       //graphWithNewVertices.edges.foreachPartition(x => {})
       oldGraph = newGraph
       newGraph = graphWithNewVertices.mapTriplets { triplet =>
-        val toSrc = triplet.dstAttr.sendMessage(triplet.attr.toDst, logScale)
-        val toDst = triplet.srcAttr.sendMessage(triplet.attr.toSrc, logScale)
+        val toSrc = triplet.dstAttr.sendMessage(triplet.attr.toDst)
+        val toDst = triplet.srcAttr.sendMessage(triplet.attr.toSrc)
         val diffSrc = toSrc.message.maxDiff(triplet.attr.toSrc.message)
         val diffDst = toDst.message.maxDiff(triplet.attr.toDst.message)
         // TODO: different scales log and not log compared with eps
