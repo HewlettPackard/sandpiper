@@ -21,7 +21,7 @@ trait FGVertex extends Serializable {
   val id: Long
   def mkString(): String
   def processMessage(aggMessage: List[Message]): FGVertex
-  def sendMessage(oldMessage: Message): Message
+  def sendMessage(incomingMessage: Message): Message
   def initMessage(varId: Long): Message
 }
 
@@ -50,17 +50,6 @@ class NamedFactor(val id: Long, val variables: Array[Long], val factor: Factor, 
     factor.length(index)
   }
 
-  /**
-    * Marginalize given the variable
-    *
-    * @param varId variable id
-    * @return marginal
-    */
-  def marginalize(varId: Long): Array[Double] = {
-    val index = varIndexById(varId)
-    factor.marginalize(index)
-  }
-
   def mkString(): String = {
     "id: " + id.toString() + ", factor: " + factor.mkString() + ", belief: " + belief.mkString()
   }
@@ -82,7 +71,6 @@ class NamedFactor(val id: Long, val variables: Array[Long], val factor: Factor, 
   }
 
   override def initMessage(varId: Long): Message = {
-    // TODO: generate message with zeros (that is log of 1s)
     Message(this.id, Variable.fill(this.length(varId))(1.0), fromFactor = true)
   }
 }
@@ -129,15 +117,11 @@ case class NamedVariable(val id: Long, val belief: Variable, val prior: Variable
   override def processMessage(aggMessage: List[Message]): FGVertex = {
     assert(aggMessage.length == 1)
     val newBelief = prior.compose(aggMessage(0).message)
-    // TODO: move norm to a better place (no mutation)
-    newBelief.normalize()
     NamedVariable(id, newBelief, prior)
   }
 
   override def sendMessage(oldMessage: Message): Message = {
     val newMessage = belief.decompose(oldMessage.message)
-    // TODO: move norm to a better place (no mutation)
-    newMessage.normalize()
     Message(this.id, newMessage, fromFactor = false)
   }
 

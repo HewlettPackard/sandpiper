@@ -26,8 +26,7 @@ object BP {
   def apply(
   graph: Graph[FGVertex, Boolean],
   maxIterations: Int = 50,
-  eps: Double = 1e-3,
-  logScale: Boolean = true): Graph[FGVertex, FGEdge] = {
+  eps: Double = 1e-3): Graph[FGVertex, FGEdge] = {
     // put initial messages on edges, they will be mutated every iteration
     var newGraph = graph.mapTriplets { triplet =>
       new FGEdge(triplet.srcAttr.initMessage(triplet.dstAttr.id),
@@ -115,7 +114,7 @@ object BP {
     val numIter = args(1).toInt
     val epsilon = args(2).toDouble
     val graph = Utils.loadLibDAIToFactorGraph(sc, file)
-    val beliefs = BP(graph, maxIterations = numIter, eps = epsilon, logScale = false)
+    val beliefs = BP(graph, maxIterations = numIter, eps = epsilon)
     println(graph.vertices.count())
     val calculatedProbabilities = beliefs.vertices.flatMap { case(id, vertex) => vertex match {
       case n: NamedVariable => Seq((n.id, n.belief))

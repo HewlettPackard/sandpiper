@@ -61,88 +61,37 @@ object FactorMath {
  *      println(i / product)
  *    }
  *
+ * Accessing a value by index
+ * private def value(indices: Seq[Int]): Double = {
+ *   // NB: leftmost index changes the fastest
+ *   // NB: Wikipedia column-major order
+ *   var offset = indices.last
+ *   for (i <- states.length - 1 to 1 by -1) {
+ *     offset = indices(i - 1) + states(i - 1) * offset
+ *   }
+ *   values(offset)
+ * }
+ *
  * @param states number of states
  * @param values values in vector format
  */
 class Factor private (protected val states: Array[Int], protected val values: Array[Double]) extends Serializable {
 
-  private def value(indices: Seq[Int]): Double = {
-    // NB: leftmost index changes the fastest
-    // NB: Wikipedia column-major order
-    var offset = indices.last
-    for (i <- states.length - 1 to 1 by -1) {
-      offset = indices(i - 1) + states(i - 1) * offset
-    }
-    values(offset)
-  }
-
   /**
    * Total length of the factor in vector representation
- *
+   *
    * @return length
    */
-  def length: Int = {
-    values.length
-  }
+  val length: Int = values.length
 
   /**
    * Number of states of a variable at index
- *
+   *
    * @param index index
    * @return number of states
    */
   def length(index: Int): Int = {
     states(index)
-  }
-
-  /**
-   * Marginalize factor by a variable
- *
-   * @param index index of a variable
-   * @return marginal
-   */
-  def marginalize(index: Int): Array[Double] = {
-    require(index >= 0 && index < states.length, "Index must be non-zero && within shape")
-    val result = new Array[Double](states(index))
-    val product = states.slice(0, index).product
-    for (i <- 0 until values.length) {
-      val indexInTargetState = (i / product) % states(index)
-      result(indexInTargetState) += values(i)
-    }
-    result
-  }
-
-  /**
-   * Operation of a factor and a message
- *
-   * @param message message to a variable
-   * @param index variable index
-   * @return new factor
-   */
-  protected def operation(
-  message: Variable,
-  index: Int, op: (Double, Double) => Double): Factor = {
-    require(index >= 0, "Index must be non-zero")
-    require(states(index) == message.size,
-      "Number of states for variable and message must be equal")
-    val result = new Array[Double](length)
-    val product = states.slice(0, index).product
-    for (i <- 0 until values.length) {
-      val indexInTargetState = (i / product) % states(index)
-      result(i) = op(values(i), message.state(indexInTargetState))
-    }
-    Factor(states, result)
-  }
-
-  /**
-   * Product of a factor and a message
- *
-   * @param message message to a variable
-   * @param index variable index
-   * @return new factor
-   */
-  def product(message: Variable, index: Int): Factor = {
-    operation(message, index, (x, y) => x * y)
   }
 
   /**
@@ -164,7 +113,6 @@ class Factor private (protected val states: Array[Int], protected val values: Ar
       result(i) = FactorMath.compose(values(i), message.state(indexInTargetState))
     }
     Factor(states, result)
-
   }
 
   /**
@@ -190,68 +138,12 @@ class Factor private (protected val states: Array[Int], protected val values: Ar
   }
 
   /**
-   * Division of a factor and a message
- *
-   * @param message message to a variable
-   * @param index variable index
-   * @return new factor
-   */
-  def division(message: Variable, index: Int): Factor = {
-    operation(message, index, (x, y) => x / y)
-  }
-
-  /**
-   * Marginal of a factor and a message operation
- *
-   * @param message message to a variable
-   * @param index index of a variable
-   * @return marginal
-   */
-  def operationAndMarginal(
-  message: Variable,
-  index: Int,
-  op: (Double, Double) => Double): Array[Double] = {
-    require(index >= 0, "Index must be non-zero")
-    require(states(index) == message.size,
-      "Number of states for variable and message must be equal")
-    val result = new Array[Double](states(index))
-    val product = states.slice(0, index).product
-    for (i <- 0 until values.length) {
-      val indexInTargetState = (i / product) % states(index)
-      result(indexInTargetState) += op(values(i), message.state(indexInTargetState))
-    }
-    result
-  }
-
-
-  /**
-   * Marginal of a product of a factor and a message
- *
-   * @param message message to a variable
-   * @param index index of a variable
-   * @return marginal
-   */
-  def marginalOfProduct(message: Variable, index: Int): Array[Double] = {
-    operationAndMarginal(message, index, (x, y) => x * y)
-  }
-
-  /**
-   * Division of a product of a factor and a message
- *
-   * @param message message to a variable
-   * @param index index of a variable
-   * @return marginal
-   */
-  def marginalOfDivision(message: Variable, index: Int): Array[Double] = {
-    operationAndMarginal(message, index, (x, y) => x / y)
-  }
-
-  /**
    * Clone values
- *
+   *
    * @return values
    */
   def cloneValues: Array[Double] = {
+    // TODO: remove?
     values.clone()
   }
 
@@ -285,76 +177,46 @@ class Variable private (
   def state(index: Int): Double = values(index)
 
   /**
-   * Operation on two variables
-   *
-   * @param other variable
-   * @return multiplication result
-   */
-  protected def operation(other: Variable, op: (Double, Double) => Double): Variable = {
-    require(this.size == other.size)
-    val result = new Array[Double](size)
-    var i = 0
-    while (i < size) {
-      result(i) = op(this.values(i), other.values(i))
-      i += 1
-    }
-    new Variable(result)
-  }
-
-  /**
-    * Returns the result of composition or decomposition of two messages.
-    * Messages can be either normal or log-scale. The type of the result
-    * is the same as the first message.
-    * Handling zero values:
-    * 1) Composition. If zero state is present in one of the messages,
+    * Compose two variables
+    * Composition. If zero state is present in one of the messages,
     * while the other contains non-reversed value,
     * then the result state equals to the non-zero state with reversed sign.
     * If the other contains reversed value or zero, then the result will be zero.
-    * 2) Decomposition. If zero state is present in the second message,
-    * then the resulting state will be either zero if state in the first
-    * message is not reversed or zero, or minus state of the first message overwise.
-    * 3) Reversed sign for normal type is negative, for log-scale it is positive.
-    *
-    * @param other variable
-    * @param compose compose or decompose
-    * @return multiplication result
-    */
-  protected def ops(other: Variable, compose: Boolean): Variable = {
-    require(this.size == other.size)
-    val result = new Array[Double](size)
-    var i = 0
-    def f: (Double, Double) => Double =
-      compose match {
-      case true => (x: Double, y: Double) => FactorMath.compose(x, y)
-      case false => (x: Double, y: Double) => FactorMath.decompose(x, y)
-    }
-    while (i < size) {
-        result(i) = f(this.values(i), other.values(i))
-      i += 1
-    }
-    // do normalization
-    FactorMath.trueNormalize(result)
-    new Variable(result)
-  }
-
-  /**
-    * Compose two variables, i.e. sum if both are log-scale, product otherwise
     *
     * @param other other variable
     * @return aggregation result
     */
   def compose(other: Variable): Variable = {
-    ops(other, compose = true)
+    require(this.size == other.size)
+    val result = new Array[Double](size)
+    var i = 0
+    while (i < size) {
+      result(i) = FactorMath.compose(this.values(i), other.values(i))
+      i += 1
+    }
+    FactorMath.trueNormalize(result)
+    new Variable(result)
   }
 
   /**
-    * Decompose two variables, i.e. subtract is both are log-scale, divide otherwise
+    * Decompose two variables
+    * Decomposition. If zero state is present in the second message,
+    * then the resulting state will be either zero if state in the first
+    * message is not reversed or zero, or minus state of the first message overwise.
     *
     * @param other
     * @return
     */
   def decompose(other: Variable): Variable = {
-    ops(other, compose = false)
+    require(this.size == other.size)
+    val result = new Array[Double](size)
+    var i = 0
+    while (i < size) {
+      result(i) = FactorMath.decompose(this.values(i), other.values(i))
+      i += 1
+    }
+    FactorMath.trueNormalize(result)
+    new Variable(result)
   }
 
   /**
@@ -366,37 +228,6 @@ class Variable private (
     values.mkString(" ")
   }
 
-  def normalize(): Unit = {
-    var i = 0
-    var sum: Double = 0
-    while (i < values.length) {
-      if (values(i) > 0) sum += values(i) else values(i) = 0
-      i += 1
-    }
-    if (sum == 0) return
-    i = 0
-    while (i < values.length) {
-      values(i) = values(i) / sum
-      i += 1
-    }
-  }
-
-  def trueNormalize(): Unit = {
-    var i = 0
-    var sum: Double = 0
-    while (i < values.length) {
-      sum += math.abs(values(i))
-      i += 1
-    }
-    if (sum == 0) return
-    i = 0
-    while (i < values.length) {
-      values(i) = values(i) / sum
-      i += 1
-    }
-  }
-
-
   def getTrueValue(): Variable = {
     val x = values.clone()
     var i = 0
@@ -404,25 +235,9 @@ class Variable private (
       if (x(i) < 0) x(i) = 0
       i += 1
     }
+    FactorMath.trueNormalize(x)
     val trueValue = new Variable(x)
-    trueValue.trueNormalize()
     trueValue
-  }
-
-  def log(): Unit = {
-    var i = 0
-    while (i < values.length) {
-      values(i) = math.log(values(i))
-      i += 1
-    }
-  }
-
-  def exp(): Unit = {
-    var i = 0
-    while (i < values.length) {
-      values(i) = math.exp(values(i))
-      i += 1
-    }
   }
 
   def maxDiff(other: Variable): Double = {

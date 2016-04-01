@@ -22,60 +22,60 @@ import sparkle.util.LocalSparkContext
 
 class FactorSuite extends FunSuite with LocalSparkContext {
 
-  // TODO: add 3d factor test
-  test("factor marginalize") {
-    /*
-    *       x1    margin over x0
-    *       1 4    5
-    *  x0   2 5    7
-    *       3 6    9
-    *
-    *       6 15 <- margin over x1
-    */
-    val factor = Factor(Array(3, 2), Array(1, 2, 3, 4, 5, 6))
-    val margin1 = factor.marginalize(0)
-    assert(margin1.deep == Array(5.0, 7.0, 9.0).deep,
-      "Marginalization over the first variable is (5, 7, 9)")
-    val margin2 = factor.marginalize(1)
-    assert(margin2.deep == Array(6.0, 15.0).deep,
-      "Marginalization over the second variable is (6, 15)")
-  }
-
-  test("factor product") {
-    /*
-    *       x1    msg to x0   product
-    *       1 4    1           1 4
-    *  x0   2 5    2           4 10
-    *       3 6    3           9 18
-    *
-    *       msg to x1   product
-    *       1           1 8
-    *       2           2 10
-    *                   3 12
-    */
-    val factor = Factor(Array(3, 2), Array(1, 2, 3, 4, 5, 6))
-    val message1 = Variable(Array(1, 2, 3))
-    val product1 = factor.product(message1, 0)
-    assert(product1.cloneValues.deep == Array[Double](1, 4, 9, 4, 10, 18).deep,
-      "Product should be (1, 4, 9, 1, 10, 18)")
-    val message2 = Variable(Array(1, 2))
-    val product2 = factor.product(message2, 1)
-    assert(product2.cloneValues.deep == Array[Double](1, 2, 3, 8, 10, 12).deep,
-      "Product should be (1, 2, 3, 8, 10, 12)")
-  }
-
-  test("marginalize the product") {
-    val factor = Factor(Array(3, 2), Array(1, 2, 3, 4, 5, 6))
-    val message1 = Variable(Array(1, 2, 3))
-    val trueMargin1 = factor.product(message1, 0).marginalize(0)
-    val margin1 = factor.marginalOfProduct(message1, 0)
-    assert(trueMargin1.deep == margin1.deep)
-    val message2 = Variable(Array(1, 2))
-    val trueMargin2 = factor.product(message2, 1).marginalize(1)
-    val margin2 = factor.marginalOfProduct(message2, 1)
-    assert(trueMargin2.deep == margin2.deep)
-  }
-
+//  // TODO: add 3d factor test
+//  test("factor marginalize") {
+//    /*
+//    *       x1    margin over x0
+//    *       1 4    5
+//    *  x0   2 5    7
+//    *       3 6    9
+//    *
+//    *       6 15 <- margin over x1
+//    */
+//    val factor = Factor(Array(3, 2), Array(1, 2, 3, 4, 5, 6))
+//    val margin1 = factor.marginalize(0)
+//    assert(margin1.deep == Array(5.0, 7.0, 9.0).deep,
+//      "Marginalization over the first variable is (5, 7, 9)")
+//    val margin2 = factor.marginalize(1)
+//    assert(margin2.deep == Array(6.0, 15.0).deep,
+//      "Marginalization over the second variable is (6, 15)")
+//  }
+//
+//  test("factor product") {
+//    /*
+//    *       x1    msg to x0   product
+//    *       1 4    1           1 4
+//    *  x0   2 5    2           4 10
+//    *       3 6    3           9 18
+//    *
+//    *       msg to x1   product
+//    *       1           1 8
+//    *       2           2 10
+//    *                   3 12
+//    */
+//    val factor = Factor(Array(3, 2), Array(1, 2, 3, 4, 5, 6))
+//    val message1 = Variable(Array(1, 2, 3))
+//    val product1 = factor.product(message1, 0)
+//    assert(product1.cloneValues.deep == Array[Double](1, 4, 9, 4, 10, 18).deep,
+//      "Product should be (1, 4, 9, 1, 10, 18)")
+//    val message2 = Variable(Array(1, 2))
+//    val product2 = factor.product(message2, 1)
+//    assert(product2.cloneValues.deep == Array[Double](1, 2, 3, 8, 10, 12).deep,
+//      "Product should be (1, 2, 3, 8, 10, 12)")
+//  }
+//
+//  test("marginalize the product") {
+//    val factor = Factor(Array(3, 2), Array(1, 2, 3, 4, 5, 6))
+//    val message1 = Variable(Array(1, 2, 3))
+//    val trueMargin1 = factor.product(message1, 0).marginalize(0)
+//    val margin1 = factor.marginalOfProduct(message1, 0)
+//    assert(trueMargin1.deep == margin1.deep)
+//    val message2 = Variable(Array(1, 2))
+//    val trueMargin2 = factor.product(message2, 1).marginalize(1)
+//    val margin2 = factor.marginalOfProduct(message2, 1)
+//    assert(trueMargin2.deep == margin2.deep)
+//  }
+//
 //  test("variable compose non-log") {
 //    val var1 = Variable(Array[Double](1, 2, 3), isLogScale = false)
 //    val var2 = Variable(Array[Double](3, 4, 5), isLogScale = false)

@@ -88,7 +88,7 @@ object Utils {
         // TODO: think if beliefs can be added later for the algorithm
         val variable = new NamedVariable(varIds(0),
           belief = Variable.fill(varNumValues(0))(1.0),
-          prior = Variable(factor.marginalize(varIds(0))))
+          prior = Variable(factor.factor.cloneValues))
         factorBuffer += variable
       } else {
         factorBuffer += factor
