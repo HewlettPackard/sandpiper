@@ -44,6 +44,20 @@ object FactorMath {
     else if (source < 0 && (x > 0 || x == Double.NegativeInfinity) ) throw new UnsupportedOperationException()
     else source - x
   }
+  def trueNormalize(array: Array[Double]): Unit = {
+    var i = 0
+    var sum: Double = 0
+    while (i < array.length) {
+      sum += math.abs(array(i))
+      i += 1
+    }
+    if (sum == 0) return
+    i = 0
+    while (i < array.length) {
+      array(i) = array(i) / sum
+      i += 1
+    }
+  }
 }
 
 /**
@@ -184,6 +198,7 @@ class Factor private (protected val states: Array[Int], protected val values: Ar
       val indexInTargetState = (i / product) % states(index)
       result(indexInTargetState) += FactorMath.decompose(values(i), message.state(indexInTargetState))
     }
+    FactorMath.trueNormalize(result)
     result
   }
 
@@ -337,6 +352,8 @@ class Variable private (
         result(i) = f(this.values(i), other.values(i))
       i += 1
     }
+    // do normalization
+    if (!this.isLogScale) FactorMath.trueNormalize(result)
     new Variable(result, this.isLogScale)
   }
 
@@ -384,10 +401,46 @@ class Variable private (
     }
   }
 
+  def trueNormalize(): Unit = {
+    var i = 0
+    var sum: Double = 0
+    while (i < values.length) {
+      sum += math.abs(values(i))
+      i += 1
+    }
+    if (sum == 0) return
+    i = 0
+    while (i < values.length) {
+      values(i) = values(i) / sum
+      i += 1
+    }
+  }
+
+
+  def getTrueValue(): Variable = {
+    val x = values.clone()
+    var i = 0
+    while (i < x.length) {
+      if (x(i) < 0) x(i) = 0
+      i += 1
+    }
+    val trueValue = new Variable(x, isLogScale = false)
+    trueValue.trueNormalize()
+    trueValue
+  }
+
   def log(): Unit = {
     var i = 0
     while (i < values.length) {
       values(i) = math.log(values(i))
+      i += 1
+    }
+  }
+
+  def exp(): Unit = {
+    var i = 0
+    while (i < values.length) {
+      values(i) = math.exp(values(i))
       i += 1
     }
   }

@@ -123,4 +123,27 @@ class FactorSuite extends FunSuite with LocalSparkContext {
       forall { case (x1: Double, x2: Double) => ((x1 - x2) <= eps) }, "Compose must be (4, 6, 8)")
   }
 
+  test("test compose normalization norm(X:*Z) == norm(norm(X:*Y):* Z) :/ Y") {
+    val x = Variable(Array[Double](0.2, 0.4, 0.4), isLogScale = false)
+    val y = Variable(Array[Double](0.0, 0.4, 0.6), isLogScale = false)
+    val z = Variable(Array[Double](0.4, 0.2, 0.4), isLogScale = false)
+    val xy = x.compose(y)
+    xy.trueNormalize()
+    val belief = xy.compose(z)
+    belief.trueNormalize()
+    val xz = x.compose(z)
+    xz.trueNormalize()
+    val by = belief.decompose(y)
+    by.trueNormalize()
+    println(xz.getTrueValue().mkString() + " " + by.getTrueValue().mkString())
+    val bz = belief.decompose(z)
+    bz.trueNormalize()
+    println(xy.getTrueValue().mkString() + " " + bz.getTrueValue().mkString())
+    val yz = y.compose(z)
+    yz.trueNormalize()
+    val bx = belief.decompose(x)
+    bx.trueNormalize()
+    println(yz.getTrueValue().mkString() + " " + bx.getTrueValue().mkString())
+  }
+
 }
