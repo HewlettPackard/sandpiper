@@ -122,28 +122,79 @@ class FactorSuite extends FunSuite with LocalSparkContext {
 //    assert(compose.cloneValues.zip(Array[Double](1, 8, 15)).
 //      forall { case (x1: Double, x2: Double) => ((x1 - x2) <= eps) }, "Compose must be (4, 6, 8)")
 //  }
-//
-//  test("test compose normalization norm(X:*Z) == norm(norm(X:*Y):* Z) :/ Y") {
-//    val x = Variable(Array[Double](0.2, 0.4, 0.4), isLogScale = false)
-//    val y = Variable(Array[Double](0.0, 0.4, 0.6), isLogScale = false)
-//    val z = Variable(Array[Double](0.4, 0.2, 0.4), isLogScale = false)
-//    val xy = x.compose(y)
-//    xy.trueNormalize()
-//    val belief = xy.compose(z)
-//    belief.trueNormalize()
-//    val xz = x.compose(z)
-//    xz.trueNormalize()
-//    val by = belief.decompose(y)
-//    by.trueNormalize()
-//    println(xz.getTrueValue().mkString() + " " + by.getTrueValue().mkString())
-//    val bz = belief.decompose(z)
-//    bz.trueNormalize()
-//    println(xy.getTrueValue().mkString() + " " + bz.getTrueValue().mkString())
-//    val yz = y.compose(z)
-//    yz.trueNormalize()
-//    val bx = belief.decompose(x)
-//    bx.trueNormalize()
-//    println(yz.getTrueValue().mkString() + " " + bx.getTrueValue().mkString())
-//  }
 
+  test("test compose normalization norm(X:*Z) == norm(norm(X:*Y):* Z) :/ Y") {
+    val x = Variable(Array[Double](0.0, 0.0, 1.0))
+    val y = Variable(Array[Double](0.0, 0.4, 0.6))
+    val z = Variable(Array[Double](0.4, 0.2, 0.4))
+    val xy = x.compose(y)
+    println("Belief xy: " + xy.mkString())
+    val belief = xy.compose(z)
+    println("Belief xyz: " + belief.mkString())
+    val xz = x.compose(z)
+    val by = belief.decompose(y)
+    println(xz.getTrueValue().mkString() + " : " + by.getTrueValue().mkString())
+    val bz = belief.decompose(z)
+    println(xy.getTrueValue().mkString() + " : " + bz.getTrueValue().mkString())
+    val yz = y.compose(z)
+    val bx = belief.decompose(x)
+    println(yz.getTrueValue().mkString() + " : " + bx.getTrueValue().mkString())
+  }
+
+  test("test compose normalization norm(X:*Z) == norm(norm(X:*Y):* Z) :/ Y 2") {
+    val x = Variable(Array[Double](4.9E-324, 0.5, 0.5))
+    val y = Variable(Array[Double](4.9E-324, 4.9E-324, 1.0))
+    val z = Variable(Array[Double](4.9E-324, 0.6, 0.4))
+    val xy = x.compose(y)
+    val belief = xy.compose(z)
+    val xz = x.compose(z)
+    val by = belief.decompose(y)
+    println(xz.getTrueValue().mkString() + " : " + by.getTrueValue().mkString())
+    val bz = belief.decompose(z)
+    println(xy.getTrueValue().mkString() + " : " + bz.getTrueValue().mkString())
+    val yz = y.compose(z)
+    val bx = belief.decompose(x)
+    println(yz.getTrueValue().mkString() + " : " + bx.getTrueValue().mkString())
+  }
+
+  test("test compose log (X:*Z) == ((X:*Y):* Z) :/ Y 2") {
+    println("LOG")
+    val x = Variable(Array[Double](4.9E-324, 0.5, 0.5)).log()
+    val y = Variable(Array[Double](4.9E-324, 4.9E-324, 1.0)).log()
+    val z = Variable(Array[Double](4.9E-324, 0.6, 0.4)).log()
+    println("x: " + x.mkString())
+    println("y: " + y.mkString())
+    println("z: " + z.mkString())
+    val xy = x.composeLog(y)
+    println("xy: " + xy.mkString())
+    val belief = xy.composeLog(z)
+    println("belief: " + belief.mkString())
+
+    val xz = x.composeLog(z)
+    val by = belief.decomposeLog(y)
+    println("xz: " + xz.mkString() + " : " + by.mkString())
+    println("xz: " + xz.decodeLog().exp().mkString() + " : " + by.decodeLog().exp().mkString())
+    val bz = belief.decomposeLog(z)
+    println("xy: " + xy.mkString() + " : " + bz.mkString())
+    println("xy: " + xy.decodeLog().exp().mkString() + " : " + bz.decodeLog().exp().mkString())
+    val yz = y.composeLog(z)
+    val bx = belief.decomposeLog(x)
+    println("yz: " + yz.mkString() + " : " + bx.mkString())
+    println("yz: " + yz.decodeLog().exp().mkString() + " : " + bx.decodeLog().exp().mkString())
+  }
+
+
+  test("test Factor compose/decompose") {
+    val f = Factor(Array(2, 2), Array[Double](0.0, 1.0, 1.0, 0.0))
+    val x = Variable(Array[Double](1.0, 0.0))
+    val y = Variable(Array[Double](0.0, 1.0))
+    val b1 = f.compose(x, 0)
+    val b2 = b1.compose(y, 1)
+    val bx = b2.decompose(x, 0)
+    val by = b2.decompose(y, 1)
+    println(b1.mkString())
+    println(b2.mkString())
+    println(bx.getTrueValue().mkString())
+    println(by.getTrueValue().mkString())
+  }
 }

@@ -30,15 +30,16 @@ object BP {
     // put initial messages on edges, they will be mutated every iteration
     var newGraph = graph.mapTriplets { triplet =>
       new FGEdge(triplet.srcAttr.initMessage(triplet.dstAttr.id),
-        triplet.dstAttr.initMessage(triplet.srcAttr.id), false)
+        triplet.dstAttr.initMessage(triplet.srcAttr.id), false, 0.0, 0.0)
     }.cache()
-    newGraph.edges.foreachPartition(x => {})
+    val numEdges = newGraph.edges.count//foreachPartition(x => {})
 
     var oldGraph = newGraph
     // main algorithm loop:
     var iter = 0
     var converged = false
     while (iter < maxIterations && !converged) {
+      oldGraph = newGraph
       // messages to variables are merged as a product, messages to factors are merged as lists
       val newAggMessages = newGraph.aggregateMessages[List[Message]](
         triplet => {
@@ -55,28 +56,28 @@ object BP {
         },
         TripletFields.EdgeOnly
       )
-      val graphWithNewVertices = newGraph.joinVertices(newAggMessages)(
-        (id, attr, msg) => attr.processMessage(msg))//.cache()
-      //graphWithNewVertices.edges.foreachPartition(x => {})
-      oldGraph = newGraph
-      newGraph = graphWithNewVertices.mapTriplets { triplet =>
+      newGraph = newGraph.joinVertices(newAggMessages)(
+        (id, attr, msg) => attr.processMessage(msg))
+        .mapTriplets { triplet =>
         val toSrc = triplet.dstAttr.sendMessage(triplet.attr.toDst)
         val toDst = triplet.srcAttr.sendMessage(triplet.attr.toSrc)
         val diffSrc = toSrc.message.maxDiff(triplet.attr.toSrc.message)
         val diffDst = toDst.message.maxDiff(triplet.attr.toDst.message)
-        // TODO: different scales log and not log compared with eps
-        new FGEdge(toDst, toSrc, diffSrc < eps && diffDst < eps)
+        new FGEdge(toDst, toSrc, diffSrc < eps && diffDst < eps, diffDst, diffSrc)
       }.cache()
       if (iter == 0) {
         newGraph.edges.foreachPartition(x => {})
         converged = false
       } else {
-        converged = newGraph.edges.aggregate(true)((res, edge) =>
-          res && edge.attr.converged, (res1, res2) =>
-            res1 && res2)
+        val numConverged = newGraph.edges.aggregate(0)((res, edge) =>
+          if (edge.attr.converged) (res + 1) else res, (res1, res2) =>
+            res1 + res2)
+        println(numConverged + "/" + numEdges + " edges converged")
+        converged = (numConverged == numEdges)
       }
       //graphWithNewVertices.unpersist(false)
       oldGraph.unpersist(false)
+      printVertices(newGraph)
       iter += 1
     }
     println("Iterations: " + iter + "/" + maxIterations +
@@ -122,5 +123,10 @@ object BP {
       }
     }.take(20)
     calculatedProbabilities.foreach { case (id: Long, vr: Variable) => println(id + " " + vr.mkString() )}
+    val unconvergedEdges = beliefs.edges.filter(e => !e.attr.converged).take(20)
+    unconvergedEdges.foreach { edge => println(edge.srcId + "-" + edge.dstId + " " +
+      "toDst: " + edge.attr.toDst.message.mkString() + " toSrc: " + edge.attr.toSrc.message.mkString() +
+      " diffSrc: " + edge.attr.diffSrc + " diffDst: " + edge.attr.diffDst
+    )}
   }
 }

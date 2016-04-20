@@ -56,6 +56,7 @@ class NamedFactor(val id: Long, val variables: Array[Long], val factor: Factor, 
 
   override def processMessage(aggMessage: List[Message]): FGVertex = {
     assert(aggMessage.length > 1)
+    // TODO: optimize (use one factor)
     var newBelief = factor
     for(message <- aggMessage) {
       val index = varIndexById(message.srcId)
@@ -66,12 +67,13 @@ class NamedFactor(val id: Long, val variables: Array[Long], val factor: Factor, 
 
   override def sendMessage(oldMessage: Message): Message = {
     val index = varIndexById(oldMessage.srcId)
-    val newMessage = Variable(belief.decompose(oldMessage.message, index))
+    val newMessage = belief.decompose(oldMessage.message, index)
     Message(this.id, Variable(newMessage.cloneValues), fromFactor = true)
   }
 
   override def initMessage(varId: Long): Message = {
-    Message(this.id, Variable.fill(this.length(varId))(1.0), fromFactor = true)
+    val length = this.length(varId)
+    Message(this.id, Variable.fill(length)(1.0 / length), fromFactor = true)
   }
 }
 
@@ -127,7 +129,8 @@ case class NamedVariable(val id: Long, val belief: Variable, val prior: Variable
 
 
   override def initMessage(varId: Long): Message = {
-    Message(this.id, Variable.fill(this.belief.size)(1.0), fromFactor = false)
+    val length = this.belief.size
+    Message(this.id, Variable.fill(length)(1.0 / length), fromFactor = false)
   }
 
   def mkString(): String = {
@@ -139,4 +142,4 @@ case class NamedVariable(val id: Long, val belief: Variable, val prior: Variable
 
 case class Message(val srcId: Long, val message: Variable, val fromFactor: Boolean)
 
-class FGEdge(val toDst: Message, val toSrc: Message, val converged: Boolean)
+case class FGEdge(val toDst: Message, val toSrc: Message, val converged: Boolean, diffDst: Double, diffSrc: Double)

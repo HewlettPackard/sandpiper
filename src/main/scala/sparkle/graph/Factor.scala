@@ -18,14 +18,39 @@
 package sparkle.graph
 
 object FactorMath {
+  def composeLog(x: Double, y: Double): Double = {
+    if (x == Double.PositiveInfinity || y == Double.PositiveInfinity) Double.PositiveInfinity
+    else if (x > 0 && y > 0) Double.PositiveInfinity
+    else if (x > 0 && y < 0) x - y
+    else if (x < 0 && y > 0) -x + y
+    else if (x == Double.NegativeInfinity && y <= 0) -y
+    else if (x <= 0 && y == Double.NegativeInfinity) -x
+    else x + y
+  }
+  def decomposeLog(source: Double, x: Double): Double = {
+    if (source == Double.PositiveInfinity) Double.PositiveInfinity
+    else if (source > 0 && x == Double.NegativeInfinity) -source
+    else if (source > 0 && x < 0) source + x
+    else if (source < 0 && x > 0) throw new UnsupportedOperationException("Source < 0 && x > 0")
+    else if (source == Double.NegativeInfinity) throw new UnsupportedOperationException("Source == -inf")
+    else source - x
+  }
+  def decodeLog(x: Double): Double = {
+    if (x > 0) Double.NegativeInfinity
+    else x
+  }
   def compose(x: Double, y: Double): Double = {
-    if (x == 0 && y > 0) -y
+    val dx = 1 / x
+    val dy = 1 / y
+    if (dx == Double.NegativeInfinity || dy == Double.NegativeInfinity) -0.0
+    else if (x == 0 && y == 0) -0.0
+    else if (x == 0 && y > 0) -y
     else if (x > 0 && y == 0) -x
-    else if (x < 0 && y < 0) 0
+    else if (x < 0 && y < 0) -0.0
     else x * y
   }
   def decompose(source: Double, x: Double): Double = {
-    if (source == 0) 0
+    if (source == 0 || 1 / source == Double.NegativeInfinity) 0
     else if (source < 0 && x == 0) -source
     else if (source < 0 && x > 0) 0
     else if (source > 0 && x <= 0) throw new UnsupportedOperationException()
@@ -41,7 +66,13 @@ object FactorMath {
     if (sum == 0) return
     i = 0
     while (i < array.length) {
-      array(i) = array(i) / sum
+      val dx = 1 / array(i)
+      val abs = math.abs(array(i))
+      if (dx != Double.NegativeInfinity) {
+        //if (1 - abs < 1e-200) array(i) = if (array(i) > 0) 1.0 else -1.0
+        if (abs < 1e-200) array(i) = 0.0
+      }
+      array(i) = array(i) / sum// if (array(i) == Double.NegativeInfinity) 0 else array(i) / sum
       i += 1
     }
   }
@@ -123,7 +154,7 @@ class Factor private (protected val states: Array[Int], protected val values: Ar
     * @param index
     * @return
     */
-  def decompose(message: Variable, index: Int): Array[Double] = {
+  def decompose(message: Variable, index: Int): Variable = {
     require(index >= 0, "Index must be non-zero")
     require(states(index) == message.size,
       "Number of states for variable and message must be equal")
@@ -134,7 +165,7 @@ class Factor private (protected val states: Array[Int], protected val values: Ar
       result(indexInTargetState) += FactorMath.decompose(values(i), message.state(indexInTargetState))
     }
     FactorMath.trueNormalize(result)
-    result
+    Variable(result)
   }
 
   /**
@@ -219,6 +250,28 @@ class Variable private (
     new Variable(result)
   }
 
+  def composeLog(other: Variable): Variable = {
+    require(this.size == other.size)
+    val result = new Array[Double](size)
+    var i = 0
+    while (i < size) {
+      result(i) = FactorMath.composeLog(this.values(i), other.values(i))
+      i += 1
+    }
+    new Variable(result)
+  }
+
+  def decomposeLog(other: Variable): Variable = {
+    require(this.size == other.size)
+    val result = new Array[Double](size)
+    var i = 0
+    while (i < size) {
+      result(i) = FactorMath.decomposeLog(this.values(i), other.values(i))
+      i += 1
+    }
+    new Variable(result)
+  }
+
   /**
    * Make string
    *
@@ -240,18 +293,45 @@ class Variable private (
     trueValue
   }
 
+  def decodeLog(): Variable = {
+    val x = values.clone()
+    var i = 0
+    while (i < x.length) {
+      x(i) = FactorMath.decodeLog(x(i))
+      i += 1
+    }
+    new Variable(x)
+  }
+
   def maxDiff(other: Variable): Double = {
     require(other.size == this.size, "Variables must have same size")
     var i = 0
     var diff = 0d
     while (i < values.length) {
-      val d = values(i) - other.values(i)
+      val d = math.abs(values(i) - other.values(i))
       diff = if (d > diff) d else diff
       i += 1
     }
     diff
   }
 
+  def log(): this.type = {
+    var i = 0
+    while (i < values.length) {
+      values(i) = math.log(values(i))
+      i += 1
+    }
+    this
+  }
+
+  def exp(): this.type = {
+    var i = 0
+    while (i < values.length) {
+      values(i) = math.exp(values(i))
+      i += 1
+    }
+    this
+  }
   /**
    * Clone values
    *

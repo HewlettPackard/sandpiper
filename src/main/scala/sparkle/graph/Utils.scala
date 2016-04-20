@@ -34,14 +34,27 @@ object Utils {
   }
 
   def loadLibDAIToFactorGraph(sc: SparkContext, path: String): Graph[FGVertex, Boolean] = {
-    val files = sc.binaryFiles(path)
-    val x = sc.binaryFiles(path).map { case (_, stream) =>
+    val partitions = sc.binaryFiles(path).count()
+    println("Files: " + partitions)
+    val t1 = System.nanoTime()
+    val x = sc.binaryFiles(path, partitions.toInt).map { case (_, stream) =>
         loadLibDAI(stream.open())
     }
+    //println("X partitions: " + x.partitions.length)
+    println("x.count " + x.count)
+    println("Loading time: " + (System.nanoTime() - t1) / 1e9)
     // TODO: refactor y => y, type of edge
+    val t2 = System.nanoTime()
     val (vertices, edges) = (x.keys.flatMap(y => y).map(x => (x.id, x)),
       x.values.flatMap(y => y).map(x => Edge(x._1, x._2, true)))
+    //println("v part: " + vertices.partitions.length + " edges: " + edges.partitions.length)
+    println("v.count " + vertices.count)
+    println("Transform time: " + (System.nanoTime() - t2) / 1e9)
+    val t3 = System.nanoTime()
     val graph = Graph(vertices, edges)
+    graph.edges.foreachPartition( x => {})
+    println(graph.edges.count())
+    println("Graph time: " + (System.nanoTime() - t3) / 1e9)
     graph
   }
 
