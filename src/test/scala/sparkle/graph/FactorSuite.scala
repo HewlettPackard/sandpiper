@@ -159,31 +159,9 @@ class FactorSuite extends FunSuite with LocalSparkContext {
 
   /**
     *  log (X:*Z) == ((X:*Y):* Z) :/ Y
-    *  X ~ 0.0
+    *  X ~ 0.0 && X == 0.0
     */
-  test("test compose/decompose with near-zero values") {
-    val x = Variable(Array[Double](4.9E-324, 0.5, 0.5)).log()
-    val y = Variable(Array[Double](4.9E-324, 4.9E-324, 1.0)).log()
-    val z = Variable(Array[Double](4.9E-324, 0.6, 0.4)).log()
-    val xy = x.composeLog(y)
-    val belief = xy.composeLog(z)
-    val eps = 1e-9
-    val bz = belief.decomposeLog(z)
-    assert(xy.maxDiff(bz) <= eps)
-    val xz = x.composeLog(z)
-    val by = belief.decomposeLog(y)
-    assert(xz.maxDiff(by) <= eps)
-    val yz = y.composeLog(z)
-    val bx = belief.decomposeLog(x)
-    assert(yz.maxDiff(bx) <= eps)
-  }
-
-
-  /**
-    *  log (X:*Z) == ((X:*Y):* Z) :/ Y
-    *  X ~ 0.0
-    */
-  test("test compose/decompose log-sign with near-zero values") {
+  test("test compose/decompose log-sign with zero and near-zero values") {
     val values = Array(4.9E-324, 0.5, 1.0, 0.0).map(math.log(_))
     val eps = 1e-9
     for (i <- 0 until values.length) {
@@ -215,42 +193,47 @@ class FactorSuite extends FunSuite with LocalSparkContext {
     *  log (X:*Z) == ((X:*Y):* Z) :/ Y
     *  X ~ 0.0
     */
-  test("test compose/decompose with zero values") {
+  test("test compose/decompose log with near-zero values") {
     val values = Array(4.9E-324, 0.5, 1.0).map(math.log(_))
     val eps = 1e-9
     for (i <- 0 until values.length) {
       for (j <- 0 until values.length) {
-        val ij = FactorMath.composeLogSign(values(i), values(j))
-        val ijdi = FactorMath.decomposeLogSign(ij, values(i))
-        val ijdj = FactorMath.decomposeLogSign(ij, values(j))
-        assert(math.abs(values(i) - FactorMath.decodeLogSign(ijdj)) < eps)
-        assert(math.abs(values(j) - FactorMath.decodeLogSign(ijdi)) < eps)
+        val ij = FactorMath.composeLog(values(i), values(j))
+        val ijdi = FactorMath.decomposeLog(ij, values(i))
+        val ijdj = FactorMath.decomposeLog(ij, values(j))
+        assert(math.abs(math.exp(values(i)) - math.exp(ijdj)) < eps)
+        assert(math.abs(math.exp(values(j)) - math.exp(ijdi)) < eps)
         for (k <- 0 until values.length) {
-          val ik = FactorMath.composeLogSign(values(i), values(k))
-          val jk = FactorMath.composeLogSign(values(j), values(k))
-          val ijk = FactorMath.composeLogSign(ij, values(k))
-          val ijkdi = FactorMath.decomposeLogSign(ijk, values(i))
-          val ijkdj = FactorMath.decomposeLogSign(ijk, values(j))
-          val ijkdk = FactorMath.decomposeLogSign(ijk, values(k))
-          assert(math.abs(FactorMath.decodeLogSign(jk) - FactorMath.decodeLogSign(ijkdi)) < eps)
-          assert(math.abs(FactorMath.decodeLogSign(ik) - FactorMath.decodeLogSign(ijkdj)) < eps)
-          assert(math.abs(FactorMath.decodeLogSign(ij) - FactorMath.decodeLogSign(ijkdk)) < eps)
+          val ik = FactorMath.composeLog(values(i), values(k))
+          val jk = FactorMath.composeLog(values(j), values(k))
+          val ijk = FactorMath.composeLog(ij, values(k))
+          val ijkdi = FactorMath.decomposeLog(ijk, values(i))
+          val ijkdj = FactorMath.decomposeLog(ijk, values(j))
+          val ijkdk = FactorMath.decomposeLog(ijk, values(k))
+          assert(math.abs(math.exp(jk) -
+            math.exp(ijkdi)) < eps)
+          assert(math.abs(math.exp(ik) -
+            math.exp(ijkdj)) < eps)
+          assert(math.abs(math.exp(ij) -
+            math.exp(ijkdk)) < eps)
         }
       }
     }
   }
 
-//  test("test Factor compose/decompose") {
-//    val f = Factor(Array(2, 2), Array[Double](0.0, 1.0, 1.0, 0.0))
-//    val x = Variable(Array[Double](1.0, 0.0))
-//    val y = Variable(Array[Double](0.0, 1.0))
-//    val b1 = f.compose(x, 0)
-//    val b2 = b1.compose(y, 1)
-//    val bx = b2.decompose(x, 0)
-//    val by = b2.decompose(y, 1)
-//    println(b1.mkString())
-//    println(b2.mkString())
-//    println(bx.getTrueValue().mkString())
-//    println(by.getTrueValue().mkString())
-//  }
+  test("logSum and logDiff") {
+    val values = Array(4.9E-324, 0.5, 1.0)
+    val logValues = values.map(math.log(_))
+    val eps = 1e-9
+    for (i <- 0 until values.length) {
+      for (j <- i + 1 until values.length) {
+        val refSum = math.log(values(i) + values(j))
+        val logSum = FactorMath.logSum(logValues(i), logValues(j))
+        assert(math.abs(refSum - logSum) < eps)
+        val refDiff = math.log(values(j) - values(i))
+        val logDiff = FactorMath.logDiff(logValues(j), logValues(i))
+        assert(math.abs(refDiff - logDiff) < eps)
+      }
+    }
+  }
 }

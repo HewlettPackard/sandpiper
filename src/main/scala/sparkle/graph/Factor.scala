@@ -20,6 +20,14 @@ package sparkle.graph
 object FactorMath {
   def composeLog(x: Double, y: Double): Double = x + y
   def decomposeLog(source: Double, y: Double): Double = source - y
+  def logSum(x: Double, y: Double): Double = {
+    val (a, b) = if (x >= y) (x, y) else (y, x)
+    a + math.log1p(math.exp(b - a))
+  }
+  def logDiff(x: Double, y: Double): Double = {
+    val (a, b) = if (x >= y) (x, y) else (y, x)
+    a + math.log1p(-math.exp(b - a))
+  }
 
   def composeLogSign(x: Double, y: Double): Double = {
     if (x == Double.PositiveInfinity || y == Double.PositiveInfinity) Double.PositiveInfinity
@@ -183,7 +191,7 @@ class Factor private (protected val states: Array[Int], protected val values: Ar
       val indexInTargetState = (i / product) % states(index)
       result(indexInTargetState) += FactorMath.decompose(values(i), message.state(indexInTargetState))
     }
-    FactorMath.trueNormalize(result)
+    //FactorMath.trueNormalize(result)
     Variable(result)
   }
 
