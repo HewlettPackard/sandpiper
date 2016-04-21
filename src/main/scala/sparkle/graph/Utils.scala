@@ -91,7 +91,8 @@ object Utils {
       while (nonZeroCounter < nonZeroNum) {
         line = dropWhile(reader, l => l.startsWith("#"))
         val indexAndValue = line.split("\\s+")
-        indexAndValues(nonZeroCounter) = (indexAndValue(0).toInt, indexAndValue(1).toDouble)
+        // Log conversion
+        indexAndValues(nonZeroCounter) = (indexAndValue(0).toInt, math.log(indexAndValue(1).toDouble))
         nonZeroCounter += 1
       }
       // create Factor vertex
@@ -99,8 +100,9 @@ object Utils {
       // create Variable vertex if factor has only one variable and add factor there as a prior
       if (varNum == 1) {
         // TODO: think if beliefs can be added later for the algorithm
+        val initialValue = 1.0 //math.log(1.0 / varNumValues(0))
         val variable = new NamedVariable(varIds(0),
-          belief = Variable.fill(varNumValues(0))(1.0),
+          belief = Variable.fill(varNumValues(0))(initialValue),
           prior = Variable(factor.factor.cloneValues))
         factorBuffer += variable
       } else {

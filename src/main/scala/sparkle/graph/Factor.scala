@@ -168,7 +168,7 @@ class Factor private (protected val states: Array[Int], protected val values: Ar
     val product = states.slice(0, index).product
     for (i <- 0 until values.length) {
       val indexInTargetState = (i / product) % states(index)
-      result(i) = FactorMath.compose(values(i), message.state(indexInTargetState))
+      result(i) = FactorMath.composeLog(values(i), message.state(indexInTargetState))
     }
     Factor(states, result)
   }
@@ -185,13 +185,14 @@ class Factor private (protected val states: Array[Int], protected val values: Ar
     require(index >= 0, "Index must be non-zero")
     require(states(index) == message.size,
       "Number of states for variable and message must be equal")
-    val result = new Array[Double](states(index))
+    val result = Array.fill[Double](states(index))(Double.NegativeInfinity)
     val product = states.slice(0, index).product
     for (i <- 0 until values.length) {
       val indexInTargetState = (i / product) % states(index)
-      result(indexInTargetState) += FactorMath.decompose(values(i), message.state(indexInTargetState))
+      val decomposed = FactorMath.decomposeLog(values(i), message.state(indexInTargetState))
+      val logSum = FactorMath.logSum(result(indexInTargetState), decomposed)
+      result(indexInTargetState) = logSum
     }
-    //FactorMath.trueNormalize(result)
     Variable(result)
   }
 
@@ -205,8 +206,18 @@ class Factor private (protected val states: Array[Int], protected val values: Ar
     values.clone()
   }
 
+  def exp(): Factor = {
+    val x = values.clone()
+    var i = 0
+    while (i < x.length) {
+      x(i) = math.exp(x(i))
+      i += 1
+    }
+    Factor(this.states, x)
+  }
+
   def mkString(): String = {
-    "states: " + states.mkString(" ") + ", values: " + values.mkString(" ")
+    "states: " + states.mkString(" ") + ", values (exp): " + exp().values.mkString(" ")
   }
 }
 
@@ -249,10 +260,9 @@ class Variable private (
     val result = new Array[Double](size)
     var i = 0
     while (i < size) {
-      result(i) = FactorMath.compose(this.values(i), other.values(i))
+      result(i) = FactorMath.composeLog(this.values(i), other.values(i))
       i += 1
     }
-    FactorMath.trueNormalize(result)
     new Variable(result)
   }
 
@@ -270,30 +280,7 @@ class Variable private (
     val result = new Array[Double](size)
     var i = 0
     while (i < size) {
-      result(i) = FactorMath.decompose(this.values(i), other.values(i))
-      i += 1
-    }
-    FactorMath.trueNormalize(result)
-    new Variable(result)
-  }
-
-  def composeLog(other: Variable): Variable = {
-    require(this.size == other.size)
-    val result = new Array[Double](size)
-    var i = 0
-    while (i < size) {
-      result(i) = FactorMath.composeLogSign(this.values(i), other.values(i))
-      i += 1
-    }
-    new Variable(result)
-  }
-
-  def decomposeLog(other: Variable): Variable = {
-    require(this.size == other.size)
-    val result = new Array[Double](size)
-    var i = 0
-    while (i < size) {
-      result(i) = FactorMath.decomposeLogSign(this.values(i), other.values(i))
+      result(i) = FactorMath.decomposeLog(this.values(i), other.values(i))
       i += 1
     }
     new Variable(result)
@@ -304,20 +291,8 @@ class Variable private (
    *
    * @return string representation
    */
-  def mkString(): String = {
-    values.mkString(" ")
-  }
-
-  def getTrueValue(): Variable = {
-    val x = values.clone()
-    var i = 0
-    while (i < x.length) {
-      if (x(i) < 0) x(i) = 0
-      i += 1
-    }
-    FactorMath.trueNormalize(x)
-    val trueValue = new Variable(x)
-    trueValue
+  def mkString(norm: Boolean = false): String = {
+    if (norm) expNorm().values.mkString(" ") else exp().values.mkString(" ")
   }
 
   def decodeLog(): Variable = {
@@ -325,6 +300,33 @@ class Variable private (
     var i = 0
     while (i < x.length) {
       x(i) = FactorMath.decodeLogSign(x(i))
+      i += 1
+    }
+    new Variable(x)
+  }
+
+  def expNorm(): Variable = {
+    val x = values.clone()
+    var i = 0
+    var sum = 0.0
+    while (i < x.length) {
+      x(i) = math.exp(x(i))
+      sum += x(i)
+      i += 1
+    }
+    i = 0
+    while (i < x.length) {
+      x(i) = x(i) / sum
+      i += 1
+    }
+    new Variable(x)
+  }
+
+  def exp(): Variable = {
+    val x = values.clone()
+    var i = 0
+    while (i < x.length) {
+      x(i) = math.exp(x(i))
       i += 1
     }
     new Variable(x)
@@ -342,23 +344,6 @@ class Variable private (
     diff
   }
 
-  def log(): this.type = {
-    var i = 0
-    while (i < values.length) {
-      values(i) = math.log(values(i))
-      i += 1
-    }
-    this
-  }
-
-  def exp(): this.type = {
-    var i = 0
-    while (i < values.length) {
-      values(i) = math.exp(values(i))
-      i += 1
-    }
-    this
-  }
   /**
    * Clone values
    *

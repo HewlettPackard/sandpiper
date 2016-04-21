@@ -73,7 +73,8 @@ class NamedFactor(val id: Long, val variables: Array[Long], val factor: Factor, 
 
   override def initMessage(varId: Long): Message = {
     val length = this.length(varId)
-    Message(this.id, Variable.fill(length)(1.0 / length), fromFactor = true)
+    val value = 0.0 //math.log(1.0 / length)
+    Message(this.id, Variable.fill(length)(value), fromFactor = true)
   }
 }
 
@@ -127,10 +128,10 @@ case class NamedVariable(val id: Long, val belief: Variable, val prior: Variable
     Message(this.id, newMessage, fromFactor = false)
   }
 
-
   override def initMessage(varId: Long): Message = {
     val length = this.belief.size
-    Message(this.id, Variable.fill(length)(1.0 / length), fromFactor = false)
+    val value = 0.0 // math.log(1.0 / length)
+    Message(this.id, Variable.fill(length)(value), fromFactor = false)
   }
 
   def mkString(): String = {

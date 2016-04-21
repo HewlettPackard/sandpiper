@@ -25,7 +25,7 @@ class BPSuite extends FunSuite with LocalSparkContext {
   test ("BP graph test") {
     withSpark { sc =>
       val graph = Utils.loadLibDAIToFactorGraph(sc,
-        "c:/ulanov/dev/belief-propagation/data/factor/graph-underflow.fg")
+        "c:/ulanov/dev/belief-propagation/data/factor/graph7.fg")
       val bpGraph = BP.apply(graph, maxIterations = 60, eps = 1e-3)
       val trueProbabilities = Map(
         1L -> (1.0 / 2.09 * 1.09, 1.0 / 2.09 * 1.0),
@@ -33,16 +33,15 @@ class BPSuite extends FunSuite with LocalSparkContext {
         3L -> (1.0 / 1.21 * 0.2, 1.0 / 1.21 * 1.01),
         4L -> (1.0, 0.0))
       val calculatedProbabilities = bpGraph.vertices.flatMap { case(id, vertex) => vertex match {
-        case n: NamedVariable => Seq((n.id, n.belief))
+        case n: NamedVariable => Seq((n.id, n.belief.expNorm()))
         case _ => Seq.empty[(Long, Variable)]
         }
       }.collect()
       val eps = 10e-3
       calculatedProbabilities.foreach { case (id, belief) =>
-        println(belief.mkString())
-        println(belief.getTrueValue().mkString())
         assert(belief.state(0) - trueProbabilities(id)._1 < eps &&
-          belief.state(1) - trueProbabilities(id)._2 < eps)}
+          belief.state(1) - trueProbabilities(id)._2 < eps)
+      }
     }
   }
 

@@ -123,39 +123,6 @@ class FactorSuite extends FunSuite with LocalSparkContext {
 //      forall { case (x1: Double, x2: Double) => ((x1 - x2) <= eps) }, "Compose must be (4, 6, 8)")
 //  }
 
-//  test("test compose normalization norm(X:*Z) == norm(norm(X:*Y):* Z) :/ Y") {
-//    val x = Variable(Array[Double](0.0, 0.0, 1.0))
-//    val y = Variable(Array[Double](0.0, 0.4, 0.6))
-//    val z = Variable(Array[Double](0.4, 0.2, 0.4))
-//    val xy = x.compose(y)
-//    println("Belief xy: " + xy.mkString())
-//    val belief = xy.compose(z)
-//    println("Belief xyz: " + belief.mkString())
-//    val xz = x.compose(z)
-//    val by = belief.decompose(y)
-//    println(xz.getTrueValue().mkString() + " : " + by.getTrueValue().mkString())
-//    val bz = belief.decompose(z)
-//    println(xy.getTrueValue().mkString() + " : " + bz.getTrueValue().mkString())
-//    val yz = y.compose(z)
-//    val bx = belief.decompose(x)
-//    println(yz.getTrueValue().mkString() + " : " + bx.getTrueValue().mkString())
-//  }
-//
-//  test("test compose normalization norm(X:*Z) == norm(norm(X:*Y):* Z) :/ Y 2") {
-//    val x = Variable(Array[Double](4.9E-324, 0.5, 0.5))
-//    val y = Variable(Array[Double](4.9E-324, 4.9E-324, 1.0))
-//    val z = Variable(Array[Double](4.9E-324, 0.6, 0.4))
-//    val xy = x.compose(y)
-//    val belief = xy.compose(z)
-//    val xz = x.compose(z)
-//    val by = belief.decompose(y)
-//    println(xz.getTrueValue().mkString() + " : " + by.getTrueValue().mkString())
-//    val bz = belief.decompose(z)
-//    println(xy.getTrueValue().mkString() + " : " + bz.getTrueValue().mkString())
-//    val yz = y.compose(z)
-//    val bx = belief.decompose(x)
-//    println(yz.getTrueValue().mkString() + " : " + bx.getTrueValue().mkString())
-//  }
 
   /**
     *  log (X:*Z) == ((X:*Y):* Z) :/ Y
@@ -236,4 +203,13 @@ class FactorSuite extends FunSuite with LocalSparkContext {
       }
     }
   }
+
+  test("Factor compose & decompose") {
+    // TODO: implement
+  }
+
+  test("Variable compose & decompose") {
+    // TODO: implement
+  }
+
 }

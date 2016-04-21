@@ -59,12 +59,12 @@ object BP {
       newGraph = newGraph.joinVertices(newAggMessages)(
         (id, attr, msg) => attr.processMessage(msg))
         .mapTriplets { triplet =>
-        val toSrc = triplet.dstAttr.sendMessage(triplet.attr.toDst)
-        val toDst = triplet.srcAttr.sendMessage(triplet.attr.toSrc)
-        val diffSrc = toSrc.message.maxDiff(triplet.attr.toSrc.message)
-        val diffDst = toDst.message.maxDiff(triplet.attr.toDst.message)
-        new FGEdge(toDst, toSrc, diffSrc < eps && diffDst < eps, diffDst, diffSrc)
-      }.cache()
+          val toSrc = triplet.dstAttr.sendMessage(triplet.attr.toDst)
+          val toDst = triplet.srcAttr.sendMessage(triplet.attr.toSrc)
+          val diffSrc = toSrc.message.maxDiff(triplet.attr.toSrc.message)
+          val diffDst = toDst.message.maxDiff(triplet.attr.toDst.message)
+          new FGEdge(toDst, toSrc, diffSrc < eps && diffDst < eps, diffDst, diffSrc)}
+        .cache()
       if (iter == 0) {
         newGraph.edges.foreachPartition(x => {})
         converged = false
@@ -77,7 +77,6 @@ object BP {
       }
       //graphWithNewVertices.unpersist(false)
       oldGraph.unpersist(false)
-      printVertices(newGraph)
       iter += 1
     }
     println("Iterations: " + iter + "/" + maxIterations +
@@ -122,11 +121,6 @@ object BP {
       case _ => Seq.empty[(Long, Variable)]
       }
     }.take(20)
-    calculatedProbabilities.foreach { case (id: Long, vr: Variable) => println(id + " " + vr.mkString() )}
-    val unconvergedEdges = beliefs.edges.filter(e => !e.attr.converged).take(20)
-    unconvergedEdges.foreach { edge => println(edge.srcId + "-" + edge.dstId + " " +
-      "toDst: " + edge.attr.toDst.message.mkString() + " toSrc: " + edge.attr.toSrc.message.mkString() +
-      " diffSrc: " + edge.attr.diffSrc + " diffDst: " + edge.attr.diffDst
-    )}
+    calculatedProbabilities.foreach { case (id: Long, vr: Variable) => println(id + " " + vr.expNorm().mkString() )}
   }
 }
