@@ -123,78 +123,134 @@ class FactorSuite extends FunSuite with LocalSparkContext {
 //      forall { case (x1: Double, x2: Double) => ((x1 - x2) <= eps) }, "Compose must be (4, 6, 8)")
 //  }
 
-  test("test compose normalization norm(X:*Z) == norm(norm(X:*Y):* Z) :/ Y") {
-    val x = Variable(Array[Double](0.0, 0.0, 1.0))
-    val y = Variable(Array[Double](0.0, 0.4, 0.6))
-    val z = Variable(Array[Double](0.4, 0.2, 0.4))
-    val xy = x.compose(y)
-    println("Belief xy: " + xy.mkString())
-    val belief = xy.compose(z)
-    println("Belief xyz: " + belief.mkString())
-    val xz = x.compose(z)
-    val by = belief.decompose(y)
-    println(xz.getTrueValue().mkString() + " : " + by.getTrueValue().mkString())
-    val bz = belief.decompose(z)
-    println(xy.getTrueValue().mkString() + " : " + bz.getTrueValue().mkString())
-    val yz = y.compose(z)
-    val bx = belief.decompose(x)
-    println(yz.getTrueValue().mkString() + " : " + bx.getTrueValue().mkString())
-  }
+//  test("test compose normalization norm(X:*Z) == norm(norm(X:*Y):* Z) :/ Y") {
+//    val x = Variable(Array[Double](0.0, 0.0, 1.0))
+//    val y = Variable(Array[Double](0.0, 0.4, 0.6))
+//    val z = Variable(Array[Double](0.4, 0.2, 0.4))
+//    val xy = x.compose(y)
+//    println("Belief xy: " + xy.mkString())
+//    val belief = xy.compose(z)
+//    println("Belief xyz: " + belief.mkString())
+//    val xz = x.compose(z)
+//    val by = belief.decompose(y)
+//    println(xz.getTrueValue().mkString() + " : " + by.getTrueValue().mkString())
+//    val bz = belief.decompose(z)
+//    println(xy.getTrueValue().mkString() + " : " + bz.getTrueValue().mkString())
+//    val yz = y.compose(z)
+//    val bx = belief.decompose(x)
+//    println(yz.getTrueValue().mkString() + " : " + bx.getTrueValue().mkString())
+//  }
+//
+//  test("test compose normalization norm(X:*Z) == norm(norm(X:*Y):* Z) :/ Y 2") {
+//    val x = Variable(Array[Double](4.9E-324, 0.5, 0.5))
+//    val y = Variable(Array[Double](4.9E-324, 4.9E-324, 1.0))
+//    val z = Variable(Array[Double](4.9E-324, 0.6, 0.4))
+//    val xy = x.compose(y)
+//    val belief = xy.compose(z)
+//    val xz = x.compose(z)
+//    val by = belief.decompose(y)
+//    println(xz.getTrueValue().mkString() + " : " + by.getTrueValue().mkString())
+//    val bz = belief.decompose(z)
+//    println(xy.getTrueValue().mkString() + " : " + bz.getTrueValue().mkString())
+//    val yz = y.compose(z)
+//    val bx = belief.decompose(x)
+//    println(yz.getTrueValue().mkString() + " : " + bx.getTrueValue().mkString())
+//  }
 
-  test("test compose normalization norm(X:*Z) == norm(norm(X:*Y):* Z) :/ Y 2") {
-    val x = Variable(Array[Double](4.9E-324, 0.5, 0.5))
-    val y = Variable(Array[Double](4.9E-324, 4.9E-324, 1.0))
-    val z = Variable(Array[Double](4.9E-324, 0.6, 0.4))
-    val xy = x.compose(y)
-    val belief = xy.compose(z)
-    val xz = x.compose(z)
-    val by = belief.decompose(y)
-    println(xz.getTrueValue().mkString() + " : " + by.getTrueValue().mkString())
-    val bz = belief.decompose(z)
-    println(xy.getTrueValue().mkString() + " : " + bz.getTrueValue().mkString())
-    val yz = y.compose(z)
-    val bx = belief.decompose(x)
-    println(yz.getTrueValue().mkString() + " : " + bx.getTrueValue().mkString())
-  }
-
-  test("test compose log (X:*Z) == ((X:*Y):* Z) :/ Y 2") {
-    println("LOG")
+  /**
+    *  log (X:*Z) == ((X:*Y):* Z) :/ Y
+    *  X ~ 0.0
+    */
+  test("test compose/decompose with near-zero values") {
     val x = Variable(Array[Double](4.9E-324, 0.5, 0.5)).log()
     val y = Variable(Array[Double](4.9E-324, 4.9E-324, 1.0)).log()
     val z = Variable(Array[Double](4.9E-324, 0.6, 0.4)).log()
-    println("x: " + x.mkString())
-    println("y: " + y.mkString())
-    println("z: " + z.mkString())
     val xy = x.composeLog(y)
-    println("xy: " + xy.mkString())
     val belief = xy.composeLog(z)
-    println("belief: " + belief.mkString())
-
+    val eps = 1e-9
+    val bz = belief.decomposeLog(z)
+    assert(xy.maxDiff(bz) <= eps)
     val xz = x.composeLog(z)
     val by = belief.decomposeLog(y)
-    println("xz: " + xz.mkString() + " : " + by.mkString())
-    println("xz: " + xz.decodeLog().exp().mkString() + " : " + by.decodeLog().exp().mkString())
-    val bz = belief.decomposeLog(z)
-    println("xy: " + xy.mkString() + " : " + bz.mkString())
-    println("xy: " + xy.decodeLog().exp().mkString() + " : " + bz.decodeLog().exp().mkString())
+    assert(xz.maxDiff(by) <= eps)
     val yz = y.composeLog(z)
     val bx = belief.decomposeLog(x)
-    println("yz: " + yz.mkString() + " : " + bx.mkString())
-    println("yz: " + yz.decodeLog().exp().mkString() + " : " + bx.decodeLog().exp().mkString())
+    assert(yz.maxDiff(bx) <= eps)
   }
 
 
-  test("test Factor compose/decompose") {
-    val f = Factor(Array(2, 2), Array[Double](0.0, 1.0, 1.0, 0.0))
-    val x = Variable(Array[Double](1.0, 0.0))
-    val y = Variable(Array[Double](0.0, 1.0))
-    val b1 = f.compose(x, 0)
-    val b2 = b1.compose(y, 1)
-    val bx = b2.decompose(x, 0)
-    val by = b2.decompose(y, 1)
-    println(b1.mkString())
-    println(b2.mkString())
-    println(bx.getTrueValue().mkString())
-    println(by.getTrueValue().mkString())
+  /**
+    *  log (X:*Z) == ((X:*Y):* Z) :/ Y
+    *  X ~ 0.0
+    */
+  test("test compose/decompose log-sign with near-zero values") {
+    val values = Array(4.9E-324, 0.5, 1.0, 0.0).map(math.log(_))
+    val eps = 1e-9
+    for (i <- 0 until values.length) {
+      for (j <- 0 until values.length) {
+        val ij = FactorMath.composeLogSign(values(i), values(j))
+        val ijdi = FactorMath.decomposeLogSign(ij, values(i))
+        val ijdj = FactorMath.decomposeLogSign(ij, values(j))
+        assert(math.abs(math.exp(values(i)) - math.exp(FactorMath.decodeLogSign(ijdj))) < eps)
+        assert(math.abs(math.exp(values(j)) - math.exp(FactorMath.decodeLogSign(ijdi))) < eps)
+        for (k <- 0 until values.length) {
+          val ik = FactorMath.composeLogSign(values(i), values(k))
+          val jk = FactorMath.composeLogSign(values(j), values(k))
+          val ijk = FactorMath.composeLogSign(ij, values(k))
+          val ijkdi = FactorMath.decomposeLogSign(ijk, values(i))
+          val ijkdj = FactorMath.decomposeLogSign(ijk, values(j))
+          val ijkdk = FactorMath.decomposeLogSign(ijk, values(k))
+          assert(math.abs(math.exp(FactorMath.decodeLogSign(jk)) -
+            math.exp(FactorMath.decodeLogSign(ijkdi))) < eps)
+          assert(math.abs(math.exp(FactorMath.decodeLogSign(ik)) -
+            math.exp(FactorMath.decodeLogSign(ijkdj))) < eps)
+          assert(math.abs(math.exp(FactorMath.decodeLogSign(ij)) -
+            math.exp(FactorMath.decodeLogSign(ijkdk))) < eps)
+        }
+      }
+    }
   }
+
+  /**
+    *  log (X:*Z) == ((X:*Y):* Z) :/ Y
+    *  X ~ 0.0
+    */
+  test("test compose/decompose with zero values") {
+    val values = Array(4.9E-324, 0.5, 1.0).map(math.log(_))
+    val eps = 1e-9
+    for (i <- 0 until values.length) {
+      for (j <- 0 until values.length) {
+        val ij = FactorMath.composeLogSign(values(i), values(j))
+        val ijdi = FactorMath.decomposeLogSign(ij, values(i))
+        val ijdj = FactorMath.decomposeLogSign(ij, values(j))
+        assert(math.abs(values(i) - FactorMath.decodeLogSign(ijdj)) < eps)
+        assert(math.abs(values(j) - FactorMath.decodeLogSign(ijdi)) < eps)
+        for (k <- 0 until values.length) {
+          val ik = FactorMath.composeLogSign(values(i), values(k))
+          val jk = FactorMath.composeLogSign(values(j), values(k))
+          val ijk = FactorMath.composeLogSign(ij, values(k))
+          val ijkdi = FactorMath.decomposeLogSign(ijk, values(i))
+          val ijkdj = FactorMath.decomposeLogSign(ijk, values(j))
+          val ijkdk = FactorMath.decomposeLogSign(ijk, values(k))
+          assert(math.abs(FactorMath.decodeLogSign(jk) - FactorMath.decodeLogSign(ijkdi)) < eps)
+          assert(math.abs(FactorMath.decodeLogSign(ik) - FactorMath.decodeLogSign(ijkdj)) < eps)
+          assert(math.abs(FactorMath.decodeLogSign(ij) - FactorMath.decodeLogSign(ijkdk)) < eps)
+        }
+      }
+    }
+  }
+
+//  test("test Factor compose/decompose") {
+//    val f = Factor(Array(2, 2), Array[Double](0.0, 1.0, 1.0, 0.0))
+//    val x = Variable(Array[Double](1.0, 0.0))
+//    val y = Variable(Array[Double](0.0, 1.0))
+//    val b1 = f.compose(x, 0)
+//    val b2 = b1.compose(y, 1)
+//    val bx = b2.decompose(x, 0)
+//    val by = b2.decompose(y, 1)
+//    println(b1.mkString())
+//    println(b2.mkString())
+//    println(bx.getTrueValue().mkString())
+//    println(by.getTrueValue().mkString())
+//  }
 }

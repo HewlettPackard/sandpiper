@@ -18,25 +18,44 @@
 package sparkle.graph
 
 object FactorMath {
-  def composeLog(x: Double, y: Double): Double = {
+  def composeLog(x: Double, y: Double): Double = x + y
+  def decomposeLog(source: Double, y: Double): Double = source - y
+
+  def composeLogSign(x: Double, y: Double): Double = {
     if (x == Double.PositiveInfinity || y == Double.PositiveInfinity) Double.PositiveInfinity
+    else if (x == Double.NegativeInfinity && y == Double.NegativeInfinity) Double.PositiveInfinity
     else if (x > 0 && y > 0) Double.PositiveInfinity
     else if (x > 0 && y < 0) x - y
     else if (x < 0 && y > 0) -x + y
-    else if (x == Double.NegativeInfinity && y <= 0) -y
-    else if (x <= 0 && y == Double.NegativeInfinity) -x
+    else if (x == Double.NegativeInfinity && y < 0) -y
+    else if (x < 0 && y == Double.NegativeInfinity) -x
+    // zero special case
+    else if (x == Double.NegativeInfinity && y == 0 && 1 / y > 0) -0.0
+    else if (x == 0 && 1 / x > 0 && y == Double.NegativeInfinity) -0.0
+    else if (x == Double.NegativeInfinity && y == 0 && 1 / y < 0) Double.PositiveInfinity
+    else if (x == 0 && 1 / x < 0 && y == Double.NegativeInfinity) Double.PositiveInfinity
+    else if (x < 0 && y == 0 && 1 / y < 0) -x
+    else if (x == 0 && 1 / x < 0 && y < 0) -y
+    else if (x == 0 && 1 / x < 0 && y == 0 && 1 / y < 0) Double.PositiveInfinity
+    else if (x == 0 && 1 / x > 0 && y == 0 && 1 / y < 0) -0.0
+    else if (x == 0 && 1 / x < 0 && y == 0 && 1 / y > 0) -0.0
     else x + y
   }
-  def decomposeLog(source: Double, x: Double): Double = {
+  def decomposeLogSign(source: Double, x: Double): Double = {
     if (source == Double.PositiveInfinity) Double.PositiveInfinity
     else if (source > 0 && x == Double.NegativeInfinity) -source
-    else if (source > 0 && x < 0) source + x
+    else if (source > 0 && x < 0) Double.NegativeInfinity
     else if (source < 0 && x > 0) throw new UnsupportedOperationException("Source < 0 && x > 0")
     else if (source == Double.NegativeInfinity) throw new UnsupportedOperationException("Source == -inf")
+    // zero special case
+    else if (source == 0 && 1 / source < 0 && x == Double.NegativeInfinity) -source
+    else if (source == 0 && 1 / source < 0 && x < 0) Double.NegativeInfinity
     else source - x
   }
-  def decodeLog(x: Double): Double = {
+  def decodeLogSign(x: Double): Double = {
     if (x > 0) Double.NegativeInfinity
+    // zero special case
+    else if (x == 0 && 1 / x < 0) Double.NegativeInfinity
     else x
   }
   def compose(x: Double, y: Double): Double = {
@@ -255,7 +274,7 @@ class Variable private (
     val result = new Array[Double](size)
     var i = 0
     while (i < size) {
-      result(i) = FactorMath.composeLog(this.values(i), other.values(i))
+      result(i) = FactorMath.composeLogSign(this.values(i), other.values(i))
       i += 1
     }
     new Variable(result)
@@ -266,7 +285,7 @@ class Variable private (
     val result = new Array[Double](size)
     var i = 0
     while (i < size) {
-      result(i) = FactorMath.decomposeLog(this.values(i), other.values(i))
+      result(i) = FactorMath.decomposeLogSign(this.values(i), other.values(i))
       i += 1
     }
     new Variable(result)
@@ -297,7 +316,7 @@ class Variable private (
     val x = values.clone()
     var i = 0
     while (i < x.length) {
-      x(i) = FactorMath.decodeLog(x(i))
+      x(i) = FactorMath.decodeLogSign(x(i))
       i += 1
     }
     new Variable(x)
