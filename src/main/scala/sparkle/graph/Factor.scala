@@ -18,8 +18,29 @@
 package sparkle.graph
 
 object FactorMath {
-  def composeLog(x: Double, y: Double): Double = x + y
-  def decomposeLog(source: Double, y: Double): Double = source - y
+  def composeLog(x: Double, y: Double): Double = {
+    if (x == Double.NegativeInfinity || y == Double.NegativeInfinity || x == Double.PositiveInfinity || y == Double.PositiveInfinity) throw new UnsupportedOperationException("Negative Inf")
+    x + y
+  }
+  def decomposeLog(source: Double, y: Double): Double = {
+    if (source == Double.NegativeInfinity || y == Double.NegativeInfinity) throw new UnsupportedOperationException("Negative Inf")
+    source - y
+  }
+  def logNormalize(x: Array[Double]): Unit = {
+    var i = 0
+    var sumExp = 0.0
+    val max = x.max
+    while (i < x.length) {
+      sumExp += math.exp(x(i) - max)
+      i += 1
+    }
+    sumExp = math.log(sumExp)
+    i = 0
+    while (i < x.length) {
+      x(i) = x(i) - max - sumExp
+      i += 1
+    }
+  }
   def logSum(x: Double, y: Double): Double = {
     val (a, b) = if (x >= y) (x, y) else (y, x)
     a + math.log1p(math.exp(b - a))
@@ -65,43 +86,6 @@ object FactorMath {
     // zero special case
     else if (x == 0 && 1 / x < 0) Double.NegativeInfinity
     else x
-  }
-  def compose(x: Double, y: Double): Double = {
-    val dx = 1 / x
-    val dy = 1 / y
-    if (dx == Double.NegativeInfinity || dy == Double.NegativeInfinity) -0.0
-    else if (x == 0 && y == 0) -0.0
-    else if (x == 0 && y > 0) -y
-    else if (x > 0 && y == 0) -x
-    else if (x < 0 && y < 0) -0.0
-    else x * y
-  }
-  def decompose(source: Double, x: Double): Double = {
-    if (source == 0 || 1 / source == Double.NegativeInfinity) 0
-    else if (source < 0 && x == 0) -source
-    else if (source < 0 && x > 0) 0
-    else if (source > 0 && x <= 0) throw new UnsupportedOperationException()
-    else source / x
-  }
-  def trueNormalize(array: Array[Double]): Unit = {
-    var i = 0
-    var sum: Double = 0
-    while (i < array.length) {
-      sum += math.abs(array(i))
-      i += 1
-    }
-    if (sum == 0) return
-    i = 0
-    while (i < array.length) {
-      val dx = 1 / array(i)
-      val abs = math.abs(array(i))
-      if (dx != Double.NegativeInfinity) {
-        //if (1 - abs < 1e-200) array(i) = if (array(i) > 0) 1.0 else -1.0
-        if (abs < 1e-200) array(i) = 0.0
-      }
-      array(i) = array(i) / sum// if (array(i) == Double.NegativeInfinity) 0 else array(i) / sum
-      i += 1
-    }
   }
 }
 
@@ -263,6 +247,7 @@ class Variable private (
       result(i) = FactorMath.composeLog(this.values(i), other.values(i))
       i += 1
     }
+    FactorMath.logNormalize(result)
     new Variable(result)
   }
 
@@ -283,6 +268,7 @@ class Variable private (
       result(i) = FactorMath.decomposeLog(this.values(i), other.values(i))
       i += 1
     }
+    FactorMath.logNormalize(result)
     new Variable(result)
   }
 

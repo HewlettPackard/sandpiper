@@ -75,7 +75,6 @@ object BP {
         println(numConverged + "/" + numEdges + " edges converged")
         converged = (numConverged == numEdges)
       }
-      //graphWithNewVertices.unpersist(false)
       oldGraph.unpersist(false)
       iter += 1
     }
@@ -121,6 +120,6 @@ object BP {
       case _ => Seq.empty[(Long, Variable)]
       }
     }.take(20)
-    calculatedProbabilities.foreach { case (id: Long, vr: Variable) => println(id + " " + vr.expNorm().mkString() )}
+    calculatedProbabilities.foreach { case (id: Long, vr: Variable) => println(id + " " + vr.mkString() )}
   }
 }

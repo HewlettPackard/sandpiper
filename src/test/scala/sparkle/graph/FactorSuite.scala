@@ -204,6 +204,17 @@ class FactorSuite extends FunSuite with LocalSparkContext {
     }
   }
 
+  test("logNormalize") {
+    val values = Array(0.5, 0.5, 2.0)
+    val logValues = values.map(math.log(_))
+    val eps = 1e-9
+    FactorMath.logNormalize(logValues)
+    val result = logValues.map(math.exp(_))
+    val sum = values.sum
+    val normValues = values.map(_ / sum)
+    result.zip(normValues).foreach { case (x, y) => assert(math.abs(x - y) < eps)}
+  }
+
   test("Factor compose & decompose") {
     // TODO: implement
   }
