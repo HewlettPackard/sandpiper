@@ -73,7 +73,7 @@ class NamedFactor(val id: Long, val variables: Array[Long], val factor: Factor, 
 
   override def initMessage(varId: Long): Message = {
     val length = this.length(varId)
-    val value = 0.0 //math.log(1.0 / length)
+    val value = 0.0f //math.log(1.0 / length)
     Message(this.id, Variable.fill(length)(value), fromFactor = true)
   }
 }
@@ -99,8 +99,8 @@ object NamedFactor {
              variables: Array[Long],
              states: Array[Int],
              nonZeroNum: Int,
-             indexAndValues: Array[(Int, Double)]): NamedFactor = {
-    val values = new Array[Double](states.product)
+             indexAndValues: Array[(Int, Float)]): NamedFactor = {
+    val values = new Array[Float](states.product)
     var i = 0
     while (i < indexAndValues.size) {
       val (index, value) = indexAndValues(i)
@@ -130,7 +130,7 @@ case class NamedVariable(val id: Long, val belief: Variable, val prior: Variable
 
   override def initMessage(varId: Long): Message = {
     val length = this.belief.size
-    val value = 0.0 // math.log(1.0 / length)
+    val value = 0.0f // math.log(1.0 / length)
     Message(this.id, Variable.fill(length)(value), fromFactor = false)
   }
 
@@ -143,4 +143,4 @@ case class NamedVariable(val id: Long, val belief: Variable, val prior: Variable
 
 case class Message(val srcId: Long, val message: Variable, val fromFactor: Boolean)
 
-case class FGEdge(val toDst: Message, val toSrc: Message, val converged: Boolean, diffDst: Double, diffSrc: Double)
+case class FGEdge(val toDst: Message, val toSrc: Message, val converged: Boolean, diffDst: Float, diffSrc: Float)

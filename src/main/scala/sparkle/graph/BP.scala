@@ -30,7 +30,7 @@ object BP {
     // put initial messages on edges, they will be mutated every iteration
     var newGraph = graph.mapTriplets { triplet =>
       new FGEdge(triplet.srcAttr.initMessage(triplet.dstAttr.id),
-        triplet.dstAttr.initMessage(triplet.srcAttr.id), false, 0.0, 0.0)
+        triplet.dstAttr.initMessage(triplet.srcAttr.id), false, 0.0f, 0.0f)
     }.cache()
     val numEdges = newGraph.edges.count//foreachPartition(x => {})
 

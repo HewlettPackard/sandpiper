@@ -18,20 +18,20 @@
 package sparkle.graph
 
 object FactorMath {
-  def log(x: Double): Double = math.log(x)
-  def log1p(x: Double): Double = math.log1p(x)
-  def exp(x: Double): Double = math.exp(x)
-  def composeLog(x: Double, y: Double): Double = {
-    if (x == Double.NegativeInfinity || y == Double.NegativeInfinity || x == Double.PositiveInfinity || y == Double.PositiveInfinity) throw new UnsupportedOperationException("Negative Inf")
+  def log(x: Float): Float = math.log(x).toFloat
+  def log1p(x: Float): Float = math.log1p(x).toFloat
+  def exp(x: Float): Float = math.exp(x).toFloat
+  def composeLog(x: Float, y: Float): Float = {
+    if (x == Float.NegativeInfinity || y == Float.NegativeInfinity || x == Float.PositiveInfinity || y == Float.PositiveInfinity) throw new UnsupportedOperationException("Negative Inf")
     x + y
   }
-  def decomposeLog(source: Double, y: Double): Double = {
-    if (source == Double.NegativeInfinity || y == Double.NegativeInfinity) throw new UnsupportedOperationException("Negative Inf")
+  def decomposeLog(source: Float, y: Float): Float = {
+    if (source == Float.NegativeInfinity || y == Float.NegativeInfinity) throw new UnsupportedOperationException("Negative Inf")
     source - y
   }
-  def logNormalize(x: Array[Double]): Unit = {
+  def logNormalize(x: Array[Float]): Unit = {
     var i = 0
-    var sumExp = 0.0
+    var sumExp = 0.0f
     val max = x.max
     while (i < x.length) {
       sumExp += exp(x(i) - max)
@@ -44,50 +44,50 @@ object FactorMath {
       i += 1
     }
   }
-  def logSum(x: Double, y: Double): Double = {
+  def logSum(x: Float, y: Float): Float = {
     val (a, b) = if (x >= y) (x, y) else (y, x)
     a + log1p(exp(b - a))
   }
-  def logDiff(x: Double, y: Double): Double = {
+  def logDiff(x: Float, y: Float): Float = {
     val (a, b) = if (x >= y) (x, y) else (y, x)
     a + log1p(-exp(b - a))
   }
 
-  def composeLogSign(x: Double, y: Double): Double = {
-    if (x == Double.PositiveInfinity || y == Double.PositiveInfinity) Double.PositiveInfinity
-    else if (x == Double.NegativeInfinity && y == Double.NegativeInfinity) Double.PositiveInfinity
-    else if (x > 0 && y > 0) Double.PositiveInfinity
+  def composeLogSign(x: Float, y: Float): Float = {
+    if (x == Float.PositiveInfinity || y == Float.PositiveInfinity) Float.PositiveInfinity
+    else if (x == Float.NegativeInfinity && y == Float.NegativeInfinity) Float.PositiveInfinity
+    else if (x > 0 && y > 0) Float.PositiveInfinity
     else if (x > 0 && y < 0) x - y
     else if (x < 0 && y > 0) -x + y
-    else if (x == Double.NegativeInfinity && y < 0) -y
-    else if (x < 0 && y == Double.NegativeInfinity) -x
+    else if (x == Float.NegativeInfinity && y < 0) -y
+    else if (x < 0 && y == Float.NegativeInfinity) -x
     // zero special case
-    else if (x == Double.NegativeInfinity && y == 0 && 1 / y > 0) -0.0
-    else if (x == 0 && 1 / x > 0 && y == Double.NegativeInfinity) -0.0
-    else if (x == Double.NegativeInfinity && y == 0 && 1 / y < 0) Double.PositiveInfinity
-    else if (x == 0 && 1 / x < 0 && y == Double.NegativeInfinity) Double.PositiveInfinity
+    else if (x == Float.NegativeInfinity && y == 0 && 1 / y > 0) -0.0f
+    else if (x == 0 && 1 / x > 0 && y == Float.NegativeInfinity) -0.0f
+    else if (x == Float.NegativeInfinity && y == 0 && 1 / y < 0) Float.PositiveInfinity
+    else if (x == 0 && 1 / x < 0 && y == Float.NegativeInfinity) Float.PositiveInfinity
     else if (x < 0 && y == 0 && 1 / y < 0) -x
     else if (x == 0 && 1 / x < 0 && y < 0) -y
-    else if (x == 0 && 1 / x < 0 && y == 0 && 1 / y < 0) Double.PositiveInfinity
-    else if (x == 0 && 1 / x > 0 && y == 0 && 1 / y < 0) -0.0
-    else if (x == 0 && 1 / x < 0 && y == 0 && 1 / y > 0) -0.0
+    else if (x == 0 && 1 / x < 0 && y == 0 && 1 / y < 0) Float.PositiveInfinity
+    else if (x == 0 && 1 / x > 0 && y == 0 && 1 / y < 0) -0.0f
+    else if (x == 0 && 1 / x < 0 && y == 0 && 1 / y > 0) -0.0f
     else x + y
   }
-  def decomposeLogSign(source: Double, x: Double): Double = {
-    if (source == Double.PositiveInfinity) Double.PositiveInfinity
-    else if (source > 0 && x == Double.NegativeInfinity) -source
-    else if (source > 0 && x < 0) Double.NegativeInfinity
+  def decomposeLogSign(source: Float, x: Float): Float = {
+    if (source == Float.PositiveInfinity) Float.PositiveInfinity
+    else if (source > 0 && x == Float.NegativeInfinity) -source
+    else if (source > 0 && x < 0) Float.NegativeInfinity
     else if (source < 0 && x > 0) throw new UnsupportedOperationException("Source < 0 && x > 0")
-    else if (source == Double.NegativeInfinity) throw new UnsupportedOperationException("Source == -inf")
+    else if (source == Float.NegativeInfinity) throw new UnsupportedOperationException("Source == -inf")
     // zero special case
-    else if (source == 0 && 1 / source < 0 && x == Double.NegativeInfinity) -source
-    else if (source == 0 && 1 / source < 0 && x < 0) Double.NegativeInfinity
+    else if (source == 0 && 1 / source < 0 && x == Float.NegativeInfinity) -source
+    else if (source == 0 && 1 / source < 0 && x < 0) Float.NegativeInfinity
     else source - x
   }
-  def decodeLogSign(x: Double): Double = {
-    if (x > 0) Double.NegativeInfinity
+  def decodeLogSign(x: Float): Float = {
+    if (x > 0) Float.NegativeInfinity
     // zero special case
-    else if (x == 0 && 1 / x < 0) Double.NegativeInfinity
+    else if (x == 0 && 1 / x < 0) Float.NegativeInfinity
     else x
   }
 }
@@ -107,7 +107,7 @@ object FactorMath {
  *    }
  *
  * Accessing a value by index
- * private def value(indices: Seq[Int]): Double = {
+ * private def value(indices: Seq[Int]): Float = {
  *   // NB: leftmost index changes the fastest
  *   // NB: Wikipedia column-major order
  *   var offset = indices.last
@@ -120,7 +120,7 @@ object FactorMath {
  * @param states number of states
  * @param values values in vector format
  */
-class Factor private (protected val states: Array[Int], protected val values: Array[Double]) extends Serializable {
+class Factor private (protected val states: Array[Int], protected val values: Array[Float]) extends Serializable {
 
   /**
    * Total length of the factor in vector representation
@@ -151,7 +151,7 @@ class Factor private (protected val states: Array[Int], protected val values: Ar
     require(index >= 0, "Index must be non-zero")
     require(states(index) == message.size,
       "Number of states for variable and message must be equal")
-    val result = new Array[Double](length)
+    val result = new Array[Float](length)
     val product = states.slice(0, index).product
     for (i <- 0 until values.length) {
       val indexInTargetState = (i / product) % states(index)
@@ -172,7 +172,7 @@ class Factor private (protected val states: Array[Int], protected val values: Ar
     require(index >= 0, "Index must be non-zero")
     require(states(index) == message.size,
       "Number of states for variable and message must be equal")
-    val result = Array.fill[Double](states(index))(Double.NegativeInfinity)
+    val result = Array.fill[Float](states(index))(Float.NegativeInfinity)
     val product = states.slice(0, index).product
     for (i <- 0 until values.length) {
       val indexInTargetState = (i / product) % states(index)
@@ -188,7 +188,7 @@ class Factor private (protected val states: Array[Int], protected val values: Ar
    *
    * @return values
    */
-  def cloneValues: Array[Double] = {
+  def cloneValues: Array[Float] = {
     // TODO: remove?
     values.clone()
   }
@@ -213,7 +213,7 @@ class Factor private (protected val states: Array[Int], protected val values: Ar
  */
 object Factor {
 
-  def apply(states: Array[Int], values: Array[Double]): Factor = {
+  def apply(states: Array[Int], values: Array[Float]): Factor = {
     new Factor(states, values)
   }
 }
@@ -225,12 +225,12 @@ object Factor {
  * @param values values
  */
 class Variable private (
-  protected val values: Array[Double]) extends Serializable {
+  protected val values: Array[Float]) extends Serializable {
 
   // TODO: come up with a single function for elementwise operations given a function
   val size = values.length
 
-  def state(index: Int): Double = values(index)
+  def state(index: Int): Float = values(index)
 
   /**
     * Compose two variables
@@ -244,7 +244,7 @@ class Variable private (
     */
   def compose(other: Variable): Variable = {
     require(this.size == other.size)
-    val result = new Array[Double](size)
+    val result = new Array[Float](size)
     var i = 0
     while (i < size) {
       result(i) = FactorMath.composeLog(this.values(i), other.values(i))
@@ -265,7 +265,7 @@ class Variable private (
     */
   def decompose(other: Variable): Variable = {
     require(this.size == other.size)
-    val result = new Array[Double](size)
+    val result = new Array[Float](size)
     var i = 0
     while (i < size) {
       result(i) = FactorMath.decomposeLog(this.values(i), other.values(i))
@@ -297,7 +297,7 @@ class Variable private (
   def expNorm(): Variable = {
     val x = values.clone()
     var i = 0
-    var sum = 0.0
+    var sum = 0.0f
     while (i < x.length) {
       x(i) = FactorMath.exp(x(i))
       sum += x(i)
@@ -321,10 +321,10 @@ class Variable private (
     new Variable(x)
   }
 
-  def maxDiff(other: Variable): Double = {
+  def maxDiff(other: Variable): Float = {
     require(other.size == this.size, "Variables must have same size")
     var i = 0
-    var diff = 0d
+    var diff = 0f
     while (i < values.length) {
       val d = math.abs(values(i) - other.values(i))
       diff = if (d > diff) d else diff
@@ -338,18 +338,18 @@ class Variable private (
    *
    * @return values
    */
-  def cloneValues: Array[Double] = {
+  def cloneValues: Array[Float] = {
     values.clone()
   }
 }
 
 object Variable {
 
-  def apply(values: Array[Double]): Variable = {
+  def apply(values: Array[Float]): Variable = {
     new Variable(values)
   }
 
-  def fill(size: Int, isLogScale: Boolean = false)(elem: => Double): Variable = {
-    new Variable(Array.fill[Double](size)(elem))
+  def fill(size: Int, isLogScale: Boolean = false)(elem: => Float): Variable = {
+    new Variable(Array.fill[Float](size)(elem))
   }
 }

@@ -129,7 +129,7 @@ class FactorSuite extends FunSuite with LocalSparkContext {
     *  X ~ 0.0 && X == 0.0
     */
   test("test compose/decompose log-sign with zero and near-zero values") {
-    val values = Array(4.9E-324, 0.5, 1.0, 0.0).map(math.log(_))
+    val values = Array(4.9E-324, 0.5, 1.0, 0.0).map(math.log(_).toFloat)
     val eps = 1e-9
     for (i <- 0 until values.length) {
       for (j <- 0 until values.length) {
@@ -161,7 +161,7 @@ class FactorSuite extends FunSuite with LocalSparkContext {
     *  X ~ 0.0
     */
   test("test compose/decompose log with near-zero values") {
-    val values = Array(4.9E-324, 0.5, 1.0).map(math.log(_))
+    val values = Array(4.9E-324, 0.5, 1.0).map(math.log(_).toFloat)
     val eps = 1e-9
     for (i <- 0 until values.length) {
       for (j <- 0 until values.length) {
@@ -189,8 +189,8 @@ class FactorSuite extends FunSuite with LocalSparkContext {
   }
 
   test("logSum and logDiff") {
-    val values = Array(4.9E-324, 0.5, 1.0)
-    val logValues = values.map(math.log(_))
+    val values = Array(4.9E-324f, 0.5f, 1.0f)
+    val logValues = values.map(math.log(_).toFloat)
     val eps = 1e-9
     for (i <- 0 until values.length) {
       for (j <- i + 1 until values.length) {
@@ -205,8 +205,8 @@ class FactorSuite extends FunSuite with LocalSparkContext {
   }
 
   test("logNormalize") {
-    val values = Array(0.5, 0.5, 2.0)
-    val logValues = values.map(math.log(_))
+    val values = Array(0.5f, 0.5f, 2.0f)
+    val logValues = values.map(math.log(_).toFloat)
     val eps = 1e-9
     FactorMath.logNormalize(logValues)
     val result = logValues.map(math.exp(_))
