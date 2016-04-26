@@ -18,6 +18,9 @@
 package sparkle.graph
 
 object FactorMath {
+  def log(x: Double): Double = math.log(x)
+  def log1p(x: Double): Double = math.log1p(x)
+  def exp(x: Double): Double = math.exp(x)
   def composeLog(x: Double, y: Double): Double = {
     if (x == Double.NegativeInfinity || y == Double.NegativeInfinity || x == Double.PositiveInfinity || y == Double.PositiveInfinity) throw new UnsupportedOperationException("Negative Inf")
     x + y
@@ -31,10 +34,10 @@ object FactorMath {
     var sumExp = 0.0
     val max = x.max
     while (i < x.length) {
-      sumExp += math.exp(x(i) - max)
+      sumExp += exp(x(i) - max)
       i += 1
     }
-    sumExp = math.log(sumExp)
+    sumExp = log(sumExp)
     i = 0
     while (i < x.length) {
       x(i) = x(i) - max - sumExp
@@ -43,11 +46,11 @@ object FactorMath {
   }
   def logSum(x: Double, y: Double): Double = {
     val (a, b) = if (x >= y) (x, y) else (y, x)
-    a + math.log1p(math.exp(b - a))
+    a + log1p(exp(b - a))
   }
   def logDiff(x: Double, y: Double): Double = {
     val (a, b) = if (x >= y) (x, y) else (y, x)
-    a + math.log1p(-math.exp(b - a))
+    a + log1p(-exp(b - a))
   }
 
   def composeLogSign(x: Double, y: Double): Double = {
@@ -194,7 +197,7 @@ class Factor private (protected val states: Array[Int], protected val values: Ar
     val x = values.clone()
     var i = 0
     while (i < x.length) {
-      x(i) = math.exp(x(i))
+      x(i) = FactorMath.exp(x(i))
       i += 1
     }
     Factor(this.states, x)
@@ -296,7 +299,7 @@ class Variable private (
     var i = 0
     var sum = 0.0
     while (i < x.length) {
-      x(i) = math.exp(x(i))
+      x(i) = FactorMath.exp(x(i))
       sum += x(i)
       i += 1
     }
@@ -312,7 +315,7 @@ class Variable private (
     val x = values.clone()
     var i = 0
     while (i < x.length) {
-      x(i) = math.exp(x(i))
+      x(i) = FactorMath.exp(x(i))
       i += 1
     }
     new Variable(x)
