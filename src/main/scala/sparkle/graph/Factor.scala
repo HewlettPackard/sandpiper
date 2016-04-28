@@ -18,6 +18,7 @@
 package sparkle.graph
 
 object FactorMath {
+  val precision = math.log(Float.MinPositiveValue).toFloat
   def log(x: Float): Float = math.log(x).toFloat
   def log1p(x: Float): Float = math.log1p(x).toFloat
   def exp(x: Float): Float = math.exp(x).toFloat
@@ -41,6 +42,7 @@ object FactorMath {
     i = 0
     while (i < x.length) {
       x(i) = x(i) - max - sumExp
+      if (x(i) < precision) x(i) = precision
       i += 1
     }
   }
@@ -48,6 +50,7 @@ object FactorMath {
     val (a, b) = if (x >= y) (x, y) else (y, x)
     a + log1p(exp(b - a))
   }
+  // TODO: fix! if x == NegativeInfinity then return y
   def logDiff(x: Float, y: Float): Float = {
     val (a, b) = if (x >= y) (x, y) else (y, x)
     a + log1p(-exp(b - a))
@@ -180,6 +183,7 @@ class Factor private (protected val states: Array[Int], protected val values: Ar
       val logSum = FactorMath.logSum(result(indexInTargetState), decomposed)
       result(indexInTargetState) = logSum
     }
+    FactorMath.logNormalize(result)
     Variable(result)
   }
 
@@ -280,8 +284,8 @@ class Variable private (
    *
    * @return string representation
    */
-  def mkString(norm: Boolean = false): String = {
-    if (norm) expNorm().values.mkString(" ") else exp().values.mkString(" ")
+  def mkString(exponent: Boolean = true): String = {
+    if (exponent) exp().values.mkString(" ") else values.mkString(" ")
   }
 
   def decodeLog(): Variable = {
@@ -326,7 +330,7 @@ class Variable private (
     var i = 0
     var diff = 0f
     while (i < values.length) {
-      val d = math.abs(values(i) - other.values(i))
+      val d = FactorMath.exp(FactorMath.logDiff(values(i), other.values(i)))
       diff = if (d > diff) d else diff
       i += 1
     }

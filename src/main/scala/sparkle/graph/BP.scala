@@ -81,6 +81,17 @@ object BP {
     println("Iterations: " + iter + "/" + maxIterations +
       ". Converged: " + converged + " with esp=" + eps)
     // TODO: return beliefs as RDD[Beliefs] that can be computed at the end as message product
+    val unconv = newGraph.edges.filter(edge => !edge.attr.converged).take(20)
+    unconv.foreach(edge => println(edge.attr.converged + " " + edge.srcId + "-" + edge.dstId +
+      " toDst:" + edge.attr.toDst.message.mkString(false) + " toSrc:" + edge.attr.toSrc.message.mkString(false)))
+    val unconvDst = unconv.map(edge => edge.srcId)
+    println("unc vert")
+    val uVertices = newGraph.vertices.filter( v => unconvDst.contains(v._1)).flatMap { case(id, vertex) => vertex match {
+      case n: NamedVariable => Seq((n.id, n.belief))
+      case _ => Seq.empty[(Long, Variable)]
+    }}.collect()
+    uVertices.foreach { case (id: Long, vr: Variable) => println(id + " " + vr.mkString(false) )}
+    println("unc vert end")
     newGraph
   }
 
