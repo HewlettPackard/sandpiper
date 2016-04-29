@@ -18,6 +18,7 @@
 package sparkle.graph
 
 object FactorMath {
+  val precision = math.log(Double.MinPositiveValue)
   def log(x: Double): Double = math.log(x)
   def log1p(x: Double): Double = math.log1p(x)
   def exp(x: Double): Double = math.exp(x)
@@ -41,6 +42,7 @@ object FactorMath {
     i = 0
     while (i < x.length) {
       x(i) = x(i) - max - sumExp
+      if (x(i) < precision) x(i) = precision
       i += 1
     }
   }
@@ -180,6 +182,7 @@ class Factor private (protected val states: Array[Int], protected val values: Ar
       val logSum = FactorMath.logSum(result(indexInTargetState), decomposed)
       result(indexInTargetState) = logSum
     }
+    FactorMath.logNormalize(result)
     Variable(result)
   }
 
@@ -326,7 +329,7 @@ class Variable private (
     var i = 0
     var diff = 0d
     while (i < values.length) {
-      val d = math.abs(values(i) - other.values(i))
+      val d = FactorMath.exp(FactorMath.logDiff(values(i), other.values(i)))
       diff = if (d > diff) d else diff
       i += 1
     }
