@@ -25,27 +25,48 @@ import org.apache.spark.SparkContext
 
 import scala.collection.mutable.ArrayBuffer
 
+/**
+  * Utils contains functions for factor graph loading
+  */
 object Utils extends Logging {
 
-  // TODO: use something other than boolean edge
-  def loadLibDAIToFactorGraph(sc: SparkContext, path: String): Graph[FGVertex, Boolean] = {
+  /**
+    * Load factor graph from libDAI format
+    * @param sc SparkContext
+    * @param path path to a file or folder with files
+    * @return factor graph
+    */
+  def loadLibDAIToFactorGraph(sc: SparkContext, path: String): Graph[FGVertex, Unit] = {
     val partitions = sc.binaryFiles(path).count()
     val x = sc.binaryFiles(path, partitions.toInt).map { case (_, stream) =>
-        loadLibDAI(stream.open())
+      val dataStream = stream.open()
+      val data = loadLibDAI(dataStream)
+      dataStream.close()
+      data
     }
     // TODO: refactor y => y, type of edge
     val (vertices, edges) = (x.keys.flatMap(y => y).map(x => (x.id, x)),
-      x.values.flatMap(y => y).map(x => Edge(x._1, x._2, true)))
+      x.values.flatMap(y => y).map(x => Edge(x._1, x._2, ())))
     val graph = Graph(vertices, edges)
     logInfo("Loaded graph with %d vertices and %d edges".format(graph.vertices.count(), graph.edges.count()))
     graph
   }
 
+  /**
+    * Returns arrays of vertices and edges loaded from libDAI file
+    * @param fileName graph file name
+    * @return vertices and edges
+    */
   def loadLibDAI(fileName: String): (Array[FGVertex], Array[(Long, Long)]) = {
     val inputStream = new FileInputStream(fileName)
     loadLibDAI(inputStream)
   }
 
+  /**
+    * Returns arrays of vertices and edges loaded from the stream of libDAI format
+    * @param stream libDAI stream
+    * @return vertices and edges
+    */
   def loadLibDAI(stream: InputStream): (Array[FGVertex], Array[(Long, Long)]) = {
     val reader = new BufferedReader(new InputStreamReader(stream))
     // read the number of factors in the file
@@ -81,17 +102,16 @@ object Utils extends Logging {
         nonZeroCounter += 1
       }
       // create Factor vertex
-      val factor = NamedFactor(factorId, varIds, varNumValues, nonZeroNum, indexAndValues)
+      val namedFactor = NamedFactor(factorId, varIds, varNumValues, nonZeroNum, indexAndValues)
       // create Variable vertex if factor has only one variable and add factor there as a prior
       if (varNum == 1) {
-        // TODO: think if beliefs can be added later for the algorithm
         val initialValue = 1.0
-        val variable = new NamedVariable(varIds(0),
+        val namedVariable = new NamedVariable(varIds(0),
           belief = Variable.fill(varNumValues(0))(initialValue),
-          prior = Variable(factor.factor.cloneValues))
-        factorBuffer += variable
+          prior = Variable(namedFactor.factor.cloneValues))
+        factorBuffer += namedVariable
       } else {
-        factorBuffer += factor
+        factorBuffer += namedFactor
         // create edges between Variables and Factor
         for (varId <- varIds) {
           edgeBuffer += new Tuple2(varId, factorId)

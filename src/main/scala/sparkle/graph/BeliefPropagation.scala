@@ -17,14 +17,16 @@
 
 package sparkle.graph
 
-import org.apache.log4j.{Level, Logger}
 import org.apache.spark.{Logging, SparkContext, SparkConf}
 import org.apache.spark.graphx.{Graph, TripletFields}
 
-object BP extends Logging {
+/**
+  * Implementation of Loopy Belief Propagation algorithm
+  */
+object BeliefPropagation extends Logging {
 
   def apply(
-  graph: Graph[FGVertex, Boolean],
+  graph: Graph[FGVertex, Unit],
   maxIterations: Int = 50,
   eps: Double = 1e-3): Graph[FGVertex, FGEdge] = {
     // put initial messages on edges, they will be mutated every iteration
@@ -99,7 +101,7 @@ object BP extends Logging {
     val numIter = args(2).toInt
     val epsilon = args(3).toDouble
     val graph = Utils.loadLibDAIToFactorGraph(sc, inputPath)
-    val beliefs = BP(graph, maxIterations = numIter, eps = epsilon)
+    val beliefs = BeliefPropagation(graph, maxIterations = numIter, eps = epsilon)
     // TODO: output to a file instead
     val calculatedProbabilities = beliefs.vertices.flatMap { case(id, vertex) => vertex match {
       case n: NamedVariable => Seq((n.id, n.belief))

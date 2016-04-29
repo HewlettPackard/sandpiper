@@ -17,18 +17,53 @@
 
 package sparkle.graph
 
-trait FGVertex extends Serializable {
+/**
+  * Factor Graph trait. Contains methods for initialization, sending and processing messages
+  */
+private [graph] trait FGVertex extends Serializable {
+  /**
+    * id of the vertex
+    */
   val id: Long
+
+  /**
+    * Returns a new vertex that results from processing a message
+    * @param aggMessage list of messages
+    * @return vertex
+    */
   def processMessage(aggMessage: List[Message]): FGVertex
+
+  /**
+    * Returns a message based on the incoming message by decomposition of the belief
+    * @param incomingMessage incoming message
+    * @return message
+    */
   def sendMessage(incomingMessage: Message): Message
+
+  /**
+    * Returns the initial message
+    * @param varId id of a variable-recipient of the message
+    * @return message
+    */
   def initMessage(varId: Long): Message
 }
 
-class NamedFactor(val id: Long, val variables: Array[Long], val factor: Factor, val belief: Factor)
-  extends FGVertex {
+/**
+  * Representation of a named factor.
+  * Named means that it has a mapping between the variable ids and the values.
+  * Named factor also contains factor belief.
+  * @param id factor id
+  * @param variables list of variable ids
+  * @param factor factor
+  * @param belief belief
+  */
+private [graph] class NamedFactor(
+ val id: Long,
+ val variables: Array[Long],
+ val factor: Factor, val belief: Factor) extends FGVertex {
+
   /**
     * Returns variable index in the values array by its ID
-    *
     * @param varId variable ID
     * @return index
     */
@@ -40,7 +75,6 @@ class NamedFactor(val id: Long, val variables: Array[Long], val factor: Factor, 
 
   /**
     * Number of values for a variable
-    *
     * @param varId variable id
     * @return number of values
     */
@@ -73,6 +107,9 @@ class NamedFactor(val id: Long, val variables: Array[Long], val factor: Factor, 
   }
 }
 
+/**
+  * Fabric for NamedFactors
+  */
 object NamedFactor {
 
   def apply(id: Long, variables: Array[Long], factor: Factor, belief: Factor): NamedFactor = {
