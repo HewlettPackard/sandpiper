@@ -112,13 +112,20 @@ private [graph] class NamedFactor(
   */
 object NamedFactor {
 
+  /**
+    * Return new NamedFactor
+    * @param id id
+    * @param variables list of variables ids
+    * @param factor factor
+    * @param belief belief factor
+    * @return named factor
+    */
   def apply(id: Long, variables: Array[Long], factor: Factor, belief: Factor): NamedFactor = {
     new NamedFactor(id, variables, factor, belief)
   }
 
   /**
     * Create factor from the libDAI description
-    *
     * @param id unique id
     * @param variables ids of variables
     * @param states num of variables states
@@ -141,13 +148,19 @@ object NamedFactor {
     }
     new NamedFactor(id, variables, Factor(states, values), belief = Factor(states.clone(), values.clone()))
   }
-
-  def apply(factor: NamedFactor): NamedFactor = {
-    new NamedFactor(factor.id, factor.variables, factor.factor, factor.belief)
-  }
 }
 
-case class NamedVariable(val id: Long, val belief: Variable, val prior: Variable) extends FGVertex {
+/**
+  * Representation of a named variable instance.
+  * Contains variable id, belief and prior
+  * @param id id
+  * @param belief belief
+  * @param prior prior
+  */
+private [graph] case class NamedVariable (
+  val id: Long,
+  val belief: Variable,
+  val prior: Variable) extends FGVertex {
   override def processMessage(aggMessage: List[Message]): FGVertex = {
     val newBelief = prior.compose(aggMessage(0).message)
     NamedVariable(id, newBelief, prior)
@@ -166,6 +179,18 @@ case class NamedVariable(val id: Long, val belief: Variable, val prior: Variable
 }
 
 // TODO: find a better name for message field
-case class Message(val srcId: Long, val message: Variable, val fromFactor: Boolean)
+/**
+  * Representation of a message
+  * @param srcId source id
+  * @param message message
+  * @param fromFactor true if from a factor (to a variable)
+  */
+private [graph] case class Message(val srcId: Long, val message: Variable, val fromFactor: Boolean)
 
-case class FGEdge(val toDst: Message, val toSrc: Message, val converged: Boolean, diffDst: Double, diffSrc: Double)
+/**
+  * Representation of an edge in Belief Propagation graph
+  * @param toDst message from source to destination
+  * @param toSrc message from destination to source
+  * @param converged true if edge converged
+  */
+private [graph] case class FGEdge(val toDst: Message, val toSrc: Message, val converged: Boolean)

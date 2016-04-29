@@ -21,10 +21,22 @@ import org.apache.spark.{Logging, SparkContext, SparkConf}
 import org.apache.spark.graphx.{Graph, TripletFields}
 
 /**
-  * Implementation of Loopy Belief Propagation algorithm
+  * Implementation of Loopy Belief Propagation algorithm for factor graphs.
+  * For details see: https://en.wikipedia.org/wiki/Belief_propagation
+  * Uses libDAI factor graph file format as an input. In addition, each factor
+  * must have a unique id specified by ###ID in the file.
+  * For details see: https://staff.fnwi.uva.nl/j.m.mooij/libDAI/doc/fileformats.html
+  *
   */
 object BeliefPropagation extends Logging {
 
+  /**
+    * Returns graph after running the BP algorithm. Values are stored in log scale.
+    * @param graph initial factor graph
+    * @param maxIterations maximum iterations
+    * @param eps epsilon
+    * @return graph
+    */
   def apply(
   graph: Graph[FGVertex, Unit],
   maxIterations: Int = 50,
@@ -32,10 +44,9 @@ object BeliefPropagation extends Logging {
     // put initial messages on edges, they will be mutated every iteration
     var newGraph = graph.mapTriplets { triplet =>
       new FGEdge(triplet.srcAttr.initMessage(triplet.dstAttr.id),
-        triplet.dstAttr.initMessage(triplet.srcAttr.id), false, 0.0, 0.0)
+        triplet.dstAttr.initMessage(triplet.srcAttr.id), false)
     }.cache()
-    val numEdges = newGraph.edges.count//foreachPartition(x => {})
-
+    val numEdges = newGraph.edges.count
     var oldGraph = newGraph
     // main algorithm loop:
     var iter = 0
@@ -65,7 +76,7 @@ object BeliefPropagation extends Logging {
           val toDst = triplet.srcAttr.sendMessage(triplet.attr.toSrc)
           val diffSrc = toSrc.message.maxDiff(triplet.attr.toSrc.message)
           val diffDst = toDst.message.maxDiff(triplet.attr.toDst.message)
-          new FGEdge(toDst, toSrc, diffSrc < eps && diffDst < eps, diffDst, diffSrc)}
+          new FGEdge(toDst, toSrc, diffSrc < eps && diffDst < eps)}
         .cache()
       if (iter == 0) {
         newGraph.edges.foreachPartition(x => {})
@@ -85,6 +96,13 @@ object BeliefPropagation extends Logging {
     // TODO: return beliefs as RDD[Beliefs] that can be computed at the end as message product
     newGraph
   }
+
+  /**
+    * Main function to run BP from the command line.
+    * Required arguments: [path to input] [path to output] [iterations] [epsilon]
+    * Optional argument (local) runs the algorithm in the Spark local mode
+    * @param args
+    */
   def main(args: Array[String]): Unit = {
     if (args.length < 5) {
       logError("Program arguments: [path to input] [path to output] [iterations] [epsilon] (local)")
