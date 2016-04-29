@@ -155,20 +155,6 @@ class Factor private (protected val states: Array[Int], protected val values: Ar
     // TODO: remove?
     values.clone()
   }
-
-  def exp(): Factor = {
-    val x = values.clone()
-    var i = 0
-    while (i < x.length) {
-      x(i) = FactorMath.exp(x(i))
-      i += 1
-    }
-    Factor(this.states, x)
-  }
-
-  def mkString(): String = {
-    "states: " + states.mkString(" ") + ", values (exp): " + exp().values.mkString(" ")
-  }
 }
 
 /**
@@ -238,13 +224,9 @@ class Variable private (
     new Variable(result)
   }
 
-  /**
-   * Make string
-   *
-   * @return string representation
-   */
-  def mkString(exponent: Boolean = true): String = {
-    if (exponent) exp().values.mkString(" ") else values.mkString(" ")
+  override def toString(): String = {
+    // TODO: return 0 instead of minposdouble
+    exp().values.mkString(" ")
   }
 
   def exp(): Variable = {

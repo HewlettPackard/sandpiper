@@ -27,6 +27,7 @@ import scala.collection.mutable.ArrayBuffer
 
 object Utils extends Logging {
 
+  // TODO: use something other than boolean edge
   def loadLibDAIToFactorGraph(sc: SparkContext, path: String): Graph[FGVertex, Boolean] = {
     val partitions = sc.binaryFiles(path).count()
     val x = sc.binaryFiles(path, partitions.toInt).map { case (_, stream) =>

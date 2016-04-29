@@ -19,7 +19,6 @@ package sparkle.graph
 
 trait FGVertex extends Serializable {
   val id: Long
-  def mkString(): String
   def processMessage(aggMessage: List[Message]): FGVertex
   def sendMessage(incomingMessage: Message): Message
   def initMessage(varId: Long): Message
@@ -48,10 +47,6 @@ class NamedFactor(val id: Long, val variables: Array[Long], val factor: Factor, 
   def length(varId: Long): Int = {
     val index = varIndexById(varId)
     factor.length(index)
-  }
-
-  def mkString(): String = {
-    "id: " + id.toString() + ", factor: " + factor.mkString() + ", belief: " + belief.mkString()
   }
 
   override def processMessage(aggMessage: List[Message]): FGVertex = {
@@ -130,10 +125,6 @@ case class NamedVariable(val id: Long, val belief: Variable, val prior: Variable
     val length = this.belief.size
     val value = 0.0
     Message(this.id, Variable.fill(length)(value), fromFactor = false)
-  }
-
-  def mkString(): String = {
-    "id: " + id + ", belief: " + belief.mkString() + ", prior: " + prior.mkString()
   }
 }
 

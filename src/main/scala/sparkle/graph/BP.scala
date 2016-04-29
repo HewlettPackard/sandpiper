@@ -84,27 +84,28 @@ object BP extends Logging {
     newGraph
   }
   def main(args: Array[String]): Unit = {
-    if (args.length < 4) {
-      logError("Program arguments: [path to input data] [iterations] [epsilon]")
+    if (args.length < 5) {
+      logError("Program arguments: [path to input] [path to output] [iterations] [epsilon] (local)")
       throw new IllegalArgumentException("Insufficient arguments")
     }
-    val conf = if (args.length == 4 && args(3) == "local") {
+    val conf = if (args.length == 5 && args(4) == "local") {
       new SparkConf().setAppName("Belief Propagation Application").setMaster("local")
     } else {
       new SparkConf().setAppName("Belief Propagation Application")
     }
     val sc = new SparkContext(conf)
-    val file = args(0)
-    val numIter = args(1).toInt
-    val epsilon = args(2).toDouble
-    val graph = Utils.loadLibDAIToFactorGraph(sc, file)
+    val inputPath = args(0)
+    val outputPath = args(1)
+    val numIter = args(2).toInt
+    val epsilon = args(3).toDouble
+    val graph = Utils.loadLibDAIToFactorGraph(sc, inputPath)
     val beliefs = BP(graph, maxIterations = numIter, eps = epsilon)
     // TODO: output to a file instead
     val calculatedProbabilities = beliefs.vertices.flatMap { case(id, vertex) => vertex match {
       case n: NamedVariable => Seq((n.id, n.belief))
       case _ => Seq.empty[(Long, Variable)]
       }
-    }.take(20)
-    calculatedProbabilities.foreach { case (id: Long, vr: Variable) => println(id + " " + vr.mkString() )}
+    }
+    calculatedProbabilities.saveAsTextFile(outputPath)
   }
 }
