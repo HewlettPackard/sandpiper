@@ -18,10 +18,10 @@
 package sparkle.graph
 
 import org.apache.log4j.{Level, Logger}
-import org.apache.spark.{SparkContext, SparkConf}
+import org.apache.spark.{Logging, SparkContext, SparkConf}
 import org.apache.spark.graphx.{Graph, TripletFields}
 
-object BP {
+object BP extends Logging {
 
   def apply(
   graph: Graph[FGVertex, Boolean],
@@ -72,34 +72,21 @@ object BP {
         val numConverged = newGraph.edges.aggregate(0)((res, edge) =>
           if (edge.attr.converged) (res + 1) else res, (res1, res2) =>
             res1 + res2)
-        println(numConverged + "/" + numEdges + " edges converged")
+        logInfo("%d/%d edges converged".format(numConverged, numEdges))
         converged = (numConverged == numEdges)
       }
       oldGraph.unpersist(false)
       iter += 1
     }
-    println("Iterations: " + iter + "/" + maxIterations +
-      ". Converged: " + converged + " with esp=" + eps)
+    logInfo("Total %d/%d iterations completed. Inference %s with epsilon = %f".
+      format(iter, maxIterations, if (converged) "converged" else "did not converge", eps))
     // TODO: return beliefs as RDD[Beliefs] that can be computed at the end as message product
     newGraph
   }
-
-  def printEdges(graph: Graph[FGVertex, FGEdge]): Unit = {
-    graph.edges.collect.foreach(x =>
-      println(x.srcId + "-" + x.dstId +
-        " toSrc:" + x.attr.toSrc.message.mkString() + " " + x.attr.toSrc.fromFactor +
-        " toDst:" + x.attr.toDst.message.mkString() + " " + x.attr.toDst.fromFactor +
-        " converged:" + x.attr.converged))
-
-  }
-
-  def printVertices(graph: Graph[FGVertex, FGEdge]): Unit = {
-    graph.vertices.collect.foreach { case (vid, vertex) => println(vertex.mkString())}
-  }
-
   def main(args: Array[String]): Unit = {
-    for (i <- 0 until args.length) {
-      println(i + "th par: " + args(i))
+    if (args.length < 4) {
+      logError("Program arguments: [path to input data] [iterations] [epsilon]")
+      throw new IllegalArgumentException("Insufficient arguments")
     }
     val conf = if (args.length == 4 && args(3) == "local") {
       new SparkConf().setAppName("Belief Propagation Application").setMaster("local")
@@ -107,14 +94,12 @@ object BP {
       new SparkConf().setAppName("Belief Propagation Application")
     }
     val sc = new SparkContext(conf)
-    Logger.getLogger("org").setLevel(Level.OFF)
-    Logger.getLogger("akka").setLevel(Level.OFF)
     val file = args(0)
     val numIter = args(1).toInt
     val epsilon = args(2).toDouble
     val graph = Utils.loadLibDAIToFactorGraph(sc, file)
     val beliefs = BP(graph, maxIterations = numIter, eps = epsilon)
-    println(graph.vertices.count())
+    // TODO: output to a file instead
     val calculatedProbabilities = beliefs.vertices.flatMap { case(id, vertex) => vertex match {
       case n: NamedVariable => Seq((n.id, n.belief))
       case _ => Seq.empty[(Long, Variable)]

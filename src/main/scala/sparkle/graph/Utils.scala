@@ -20,41 +20,23 @@ package sparkle.graph
 import java.io._
 
 import org.apache.spark.graphx.{Edge, Graph}
-import org.apache.spark.{SparkConf, SparkContext}
+import org.apache.spark.Logging
+import org.apache.spark.SparkContext
 
 import scala.collection.mutable.ArrayBuffer
 
-object Utils {
-
-  def main(args: Array[String]) = {
-    val conf = new SparkConf()
-    val sc = new SparkContext("local", "test", conf)
-    val files = sc.binaryFiles("c:/ulanov/tmp")
-    println(files.count)
-  }
+object Utils extends Logging {
 
   def loadLibDAIToFactorGraph(sc: SparkContext, path: String): Graph[FGVertex, Boolean] = {
     val partitions = sc.binaryFiles(path).count()
-    println("Files: " + partitions)
-    val t1 = System.nanoTime()
     val x = sc.binaryFiles(path, partitions.toInt).map { case (_, stream) =>
         loadLibDAI(stream.open())
     }
-    //println("X partitions: " + x.partitions.length)
-    println("x.count " + x.count)
-    println("Loading time: " + (System.nanoTime() - t1) / 1e9)
     // TODO: refactor y => y, type of edge
-    val t2 = System.nanoTime()
     val (vertices, edges) = (x.keys.flatMap(y => y).map(x => (x.id, x)),
       x.values.flatMap(y => y).map(x => Edge(x._1, x._2, true)))
-    //println("v part: " + vertices.partitions.length + " edges: " + edges.partitions.length)
-    println("v.count " + vertices.count)
-    println("Transform time: " + (System.nanoTime() - t2) / 1e9)
-    val t3 = System.nanoTime()
     val graph = Graph(vertices, edges)
-    graph.edges.foreachPartition( x => {})
-    println(graph.edges.count())
-    println("Graph time: " + (System.nanoTime() - t3) / 1e9)
+    logInfo("Loaded graph with %d vertices and %d edges".format(graph.vertices.count(), graph.edges.count()))
     graph
   }
 
@@ -73,7 +55,7 @@ object Utils {
     val edgeBuffer = new ArrayBuffer[(Long, Long)](numFactors * 10)
     // read factors
     var factorCounter = 0
-    // TODO: add factor ids in source format as comment e.g. #222
+    // factor ids are in source format as comment e.g. ###222
     while (factorCounter < numFactors) {
       // skip to the next block with factors
       line = dropWhile(reader, l => !l.startsWith("###"))
@@ -92,7 +74,9 @@ object Utils {
         line = dropWhile(reader, l => l.startsWith("#"))
         val indexAndValue = line.split("\\s+")
         // Log conversion
-        indexAndValues(nonZeroCounter) = (indexAndValue(0).toInt, math.log(indexAndValue(1).toDouble))
+        var value = indexAndValue(1).toDouble
+        if (value == 0 ) value = Double.MinPositiveValue
+        indexAndValues(nonZeroCounter) = (indexAndValue(0).toInt, math.log(value))
         nonZeroCounter += 1
       }
       // create Factor vertex
@@ -100,7 +84,7 @@ object Utils {
       // create Variable vertex if factor has only one variable and add factor there as a prior
       if (varNum == 1) {
         // TODO: think if beliefs can be added later for the algorithm
-        val initialValue = 1.0 //math.log(1.0 / varNumValues(0))
+        val initialValue = 1.0
         val variable = new NamedVariable(varIds(0),
           belief = Variable.fill(varNumValues(0))(initialValue),
           prior = Variable(factor.factor.cloneValues))
@@ -121,7 +105,10 @@ object Utils {
 
   private def dropWhile(reader: BufferedReader, condition: String => Boolean): String  = {
     var line = reader.readLine()
-    if (line == null) throw new IOException("More data expected!")
+    if (line == null) {
+      logError("More data expected but the end of file reached!")
+      throw new IOException("End of file reached")
+    }
     while (condition(line)) {
       line = reader.readLine()
     }

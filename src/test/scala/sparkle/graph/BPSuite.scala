@@ -33,7 +33,7 @@ class BPSuite extends FunSuite with LocalSparkContext {
         3L -> (1.0 / 1.21 * 0.2, 1.0 / 1.21 * 1.01),
         4L -> (1.0, 0.0))
       val calculatedProbabilities = bpGraph.vertices.flatMap { case(id, vertex) => vertex match {
-        case n: NamedVariable => Seq((n.id, n.belief.expNorm()))
+        case n: NamedVariable => Seq((n.id, n.belief.exp()))
         case _ => Seq.empty[(Long, Variable)]
         }
       }.collect()

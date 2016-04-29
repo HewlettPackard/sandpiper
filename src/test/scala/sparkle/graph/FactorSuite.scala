@@ -126,38 +126,6 @@ class FactorSuite extends FunSuite with LocalSparkContext {
 
   /**
     *  log (X:*Z) == ((X:*Y):* Z) :/ Y
-    *  X ~ 0.0 && X == 0.0
-    */
-  test("test compose/decompose log-sign with zero and near-zero values") {
-    val values = Array(4.9E-324, 0.5, 1.0, 0.0).map(math.log(_))
-    val eps = 1e-9
-    for (i <- 0 until values.length) {
-      for (j <- 0 until values.length) {
-        val ij = FactorMath.composeLogSign(values(i), values(j))
-        val ijdi = FactorMath.decomposeLogSign(ij, values(i))
-        val ijdj = FactorMath.decomposeLogSign(ij, values(j))
-        assert(math.abs(math.exp(values(i)) - math.exp(FactorMath.decodeLogSign(ijdj))) < eps)
-        assert(math.abs(math.exp(values(j)) - math.exp(FactorMath.decodeLogSign(ijdi))) < eps)
-        for (k <- 0 until values.length) {
-          val ik = FactorMath.composeLogSign(values(i), values(k))
-          val jk = FactorMath.composeLogSign(values(j), values(k))
-          val ijk = FactorMath.composeLogSign(ij, values(k))
-          val ijkdi = FactorMath.decomposeLogSign(ijk, values(i))
-          val ijkdj = FactorMath.decomposeLogSign(ijk, values(j))
-          val ijkdk = FactorMath.decomposeLogSign(ijk, values(k))
-          assert(math.abs(math.exp(FactorMath.decodeLogSign(jk)) -
-            math.exp(FactorMath.decodeLogSign(ijkdi))) < eps)
-          assert(math.abs(math.exp(FactorMath.decodeLogSign(ik)) -
-            math.exp(FactorMath.decodeLogSign(ijkdj))) < eps)
-          assert(math.abs(math.exp(FactorMath.decodeLogSign(ij)) -
-            math.exp(FactorMath.decodeLogSign(ijkdk))) < eps)
-        }
-      }
-    }
-  }
-
-  /**
-    *  log (X:*Z) == ((X:*Y):* Z) :/ Y
     *  X ~ 0.0
     */
   test("test compose/decompose log with near-zero values") {

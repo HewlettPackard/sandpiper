@@ -23,11 +23,9 @@ object FactorMath {
   def log1p(x: Double): Double = math.log1p(x)
   def exp(x: Double): Double = math.exp(x)
   def composeLog(x: Double, y: Double): Double = {
-    if (x == Double.NegativeInfinity || y == Double.NegativeInfinity || x == Double.PositiveInfinity || y == Double.PositiveInfinity) throw new UnsupportedOperationException("Negative Inf")
     x + y
   }
   def decomposeLog(source: Double, y: Double): Double = {
-    if (source == Double.NegativeInfinity || y == Double.NegativeInfinity) throw new UnsupportedOperationException("Negative Inf")
     source - y
   }
   def logNormalize(x: Array[Double]): Unit = {
@@ -53,44 +51,6 @@ object FactorMath {
   def logDiff(x: Double, y: Double): Double = {
     val (a, b) = if (x >= y) (x, y) else (y, x)
     a + log1p(-exp(b - a))
-  }
-
-  def composeLogSign(x: Double, y: Double): Double = {
-    if (x == Double.PositiveInfinity || y == Double.PositiveInfinity) Double.PositiveInfinity
-    else if (x == Double.NegativeInfinity && y == Double.NegativeInfinity) Double.PositiveInfinity
-    else if (x > 0 && y > 0) Double.PositiveInfinity
-    else if (x > 0 && y < 0) x - y
-    else if (x < 0 && y > 0) -x + y
-    else if (x == Double.NegativeInfinity && y < 0) -y
-    else if (x < 0 && y == Double.NegativeInfinity) -x
-    // zero special case
-    else if (x == Double.NegativeInfinity && y == 0 && 1 / y > 0) -0.0
-    else if (x == 0 && 1 / x > 0 && y == Double.NegativeInfinity) -0.0
-    else if (x == Double.NegativeInfinity && y == 0 && 1 / y < 0) Double.PositiveInfinity
-    else if (x == 0 && 1 / x < 0 && y == Double.NegativeInfinity) Double.PositiveInfinity
-    else if (x < 0 && y == 0 && 1 / y < 0) -x
-    else if (x == 0 && 1 / x < 0 && y < 0) -y
-    else if (x == 0 && 1 / x < 0 && y == 0 && 1 / y < 0) Double.PositiveInfinity
-    else if (x == 0 && 1 / x > 0 && y == 0 && 1 / y < 0) -0.0
-    else if (x == 0 && 1 / x < 0 && y == 0 && 1 / y > 0) -0.0
-    else x + y
-  }
-  def decomposeLogSign(source: Double, x: Double): Double = {
-    if (source == Double.PositiveInfinity) Double.PositiveInfinity
-    else if (source > 0 && x == Double.NegativeInfinity) -source
-    else if (source > 0 && x < 0) Double.NegativeInfinity
-    else if (source < 0 && x > 0) throw new UnsupportedOperationException("Source < 0 && x > 0")
-    else if (source == Double.NegativeInfinity) throw new UnsupportedOperationException("Source == -inf")
-    // zero special case
-    else if (source == 0 && 1 / source < 0 && x == Double.NegativeInfinity) -source
-    else if (source == 0 && 1 / source < 0 && x < 0) Double.NegativeInfinity
-    else source - x
-  }
-  def decodeLogSign(x: Double): Double = {
-    if (x > 0) Double.NegativeInfinity
-    // zero special case
-    else if (x == 0 && 1 / x < 0) Double.NegativeInfinity
-    else x
   }
 }
 
@@ -283,35 +243,8 @@ class Variable private (
    *
    * @return string representation
    */
-  def mkString(norm: Boolean = false): String = {
-    if (norm) expNorm().values.mkString(" ") else exp().values.mkString(" ")
-  }
-
-  def decodeLog(): Variable = {
-    val x = values.clone()
-    var i = 0
-    while (i < x.length) {
-      x(i) = FactorMath.decodeLogSign(x(i))
-      i += 1
-    }
-    new Variable(x)
-  }
-
-  def expNorm(): Variable = {
-    val x = values.clone()
-    var i = 0
-    var sum = 0.0
-    while (i < x.length) {
-      x(i) = FactorMath.exp(x(i))
-      sum += x(i)
-      i += 1
-    }
-    i = 0
-    while (i < x.length) {
-      x(i) = x(i) / sum
-      i += 1
-    }
-    new Variable(x)
+  def mkString(exponent: Boolean = true): String = {
+    if (exponent) exp().values.mkString(" ") else values.mkString(" ")
   }
 
   def exp(): Variable = {

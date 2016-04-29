@@ -73,7 +73,7 @@ class NamedFactor(val id: Long, val variables: Array[Long], val factor: Factor, 
 
   override def initMessage(varId: Long): Message = {
     val length = this.length(varId)
-    val value = 0.0 //math.log(1.0 / length)
+    val value = 0.0
     Message(this.id, Variable.fill(length)(value), fromFactor = true)
   }
 }
@@ -111,14 +111,12 @@ object NamedFactor {
   }
 
   def apply(factor: NamedFactor): NamedFactor = {
-    // TODO: implement this
     new NamedFactor(factor.id, factor.variables, factor.factor, factor.belief)
   }
 }
 
 case class NamedVariable(val id: Long, val belief: Variable, val prior: Variable) extends FGVertex {
   override def processMessage(aggMessage: List[Message]): FGVertex = {
-    assert(aggMessage.length == 1)
     val newBelief = prior.compose(aggMessage(0).message)
     NamedVariable(id, newBelief, prior)
   }
@@ -130,7 +128,7 @@ case class NamedVariable(val id: Long, val belief: Variable, val prior: Variable
 
   override def initMessage(varId: Long): Message = {
     val length = this.belief.size
-    val value = 0.0 // math.log(1.0 / length)
+    val value = 0.0
     Message(this.id, Variable.fill(length)(value), fromFactor = false)
   }
 
@@ -139,8 +137,7 @@ case class NamedVariable(val id: Long, val belief: Variable, val prior: Variable
   }
 }
 
-// TODO: reuse NamedVariable class
-
+// TODO: find a better name for message field
 case class Message(val srcId: Long, val message: Variable, val fromFactor: Boolean)
 
 case class FGEdge(val toDst: Message, val toSrc: Message, val converged: Boolean, diffDst: Double, diffSrc: Double)
