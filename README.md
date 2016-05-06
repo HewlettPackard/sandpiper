@@ -1,7 +1,5 @@
-# Loopy Belief Propagation
-### Description
-
-### Factor graph representation
+## Loopy Belief Propagation
+This library contains the implementation of Loopy Belief Propagation on factor graphs for Apache Spark GraphX.
 
 ###Examples
 
