@@ -1,6 +1,5 @@
 ## Loopy Belief Propagation
-This library contains the implementation of Loopy Belief Propagation on factor graphs for Apache Spark GraphX.
-
+The project contains an implementation of Loopy Belief Propagation, a popular message passing algorithm for performing inference in probabilistic graphical models. It provides exact inference for graphical models without loops. While inference for graphical models with loops is approximate, in practice it is shown to work well. Our implementation is generic and operates on factor graph representation of graphical models. It handles factors of any order, and variable domains of any size. It is implemented in Apache Spark GraphX, and thus can scale to large scale models. Further, it supports computations in log scale for numerical stability.
 ###Examples
 
 **API**
