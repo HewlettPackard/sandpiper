@@ -17,3 +17,8 @@ val beliefs = BeliefPropagation(graph, maxIterations, epsilon)
 ````
 ./spark-submit --master spark://MASTER:PORT --jars belief-propagation.jar --class sparkle.graph.BP INPUT_PATH OUTPUT_PATH N_ITERATIONS EPSILON
 ````
+
+###References
+1. [Belief propagation algorithm](https://en.wikipedia.org/wiki/Belief_propagation)
+2. [LibDAI library and file format](https://staff.fnwi.uva.nl/j.m.mooij/libDAI/)
+3. Talk by the project authors: [Alexander Ulanov, Manish Marwah "Malicious site detection with large scale belief propagation", Strata+Hadoop 2017](http://conferences.oreilly.com/strata/strata-ca/public/schedule/detail/55701)
