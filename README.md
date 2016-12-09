@@ -24,4 +24,4 @@ val beliefs = BeliefPropagation(graph, maxIterations, epsilon)
 3. [Talk](http://conferences.oreilly.com/strata/strata-ca/public/schedule/detail/55701) by the project authors: Alexander Ulanov, Manish Marwah "Malicious site detection with large scale belief propagation", *Strata+Hadoop*, March 2017
 
 ###How to contribute
-Contributors are required to sign the Corporate Contributor License Agreement
+Contributors are required to sign the [Corporate Contributor License Agreement](https://github.com/HewlettPackard/sandpiper/blob/master/HPE_CCLA.txt)
