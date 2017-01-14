@@ -20,6 +20,8 @@ val beliefs = BeliefPropagation(graph, maxIterations, epsilon)
 
 ###References
 1. Belief propagation [algorithm](https://en.wikipedia.org/wiki/Belief_propagation)
+1. Yedidia, J.S.; Freeman, W.T.; Weiss, Y., "Understanding Belief Propagation and Its Generalizations" in Exploring Artificial    Intelligence in the New Millennium, Lakemeyer, G. and Nebel, B., Eds., ISBN: 1-55860-811-7, chapter 8, pp. 239-236, Morgan Kaufmann Publishers, January 2003. ([pdf](http://www.merl.com/publications/docs/TR2001-22.pdf))
+   [An excellent description of BP]
 2. LibDAI file [format](https://staff.fnwi.uva.nl/j.m.mooij/libDAI/)
 3. [Talk](http://conferences.oreilly.com/strata/strata-ca/public/schedule/detail/55701) by the project authors: Alexander Ulanov, Manish Marwah "Malicious site detection with large scale belief propagation", *Strata+Hadoop*, March 2017
 
