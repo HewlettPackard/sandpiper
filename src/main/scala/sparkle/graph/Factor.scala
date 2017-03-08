@@ -115,14 +115,16 @@ private [graph] class Factor private (
     * @return factor
     */
   def compose(message: Variable, index: Int): Factor = {
-    require(index >= 0, "Index must be non-zero")
+    require(index >= 0, "Index must be non-negative")
     require(states(index) == message.size,
       "Number of states for variable and message must be equal")
     val result = new Array[Double](length)
     val product = states.slice(0, index).product
-    for (i <- 0 until values.length) {
+    var i = 0
+    while (i < values.length) {
       val indexInTargetState = (i / product) % states(index)
       result(i) = FactorMath.composeLog(values(i), message.state(indexInTargetState))
+      i += 1
     }
     Factor(states, result)
   }
@@ -134,16 +136,38 @@ private [graph] class Factor private (
     * @return message
     */
   def decompose(message: Variable, index: Int): Variable = {
-    require(index >= 0, "Index must be non-zero")
+    require(index >= 0, "Index must be non-negative")
     require(states(index) == message.size,
       "Number of states for variable and message must be equal")
     val result = Array.fill[Double](states(index))(Double.NegativeInfinity)
     val product = states.slice(0, index).product
-    for (i <- 0 until values.length) {
+    var i = 0
+    while (i < values.length) {
       val indexInTargetState = (i / product) % states(index)
       val decomposed = FactorMath.decomposeLog(values(i), message.state(indexInTargetState))
       val logSum = FactorMath.logSum(result(indexInTargetState), decomposed)
       result(indexInTargetState) = logSum
+      i += 1
+    }
+    FactorMath.logNormalize(result)
+    Variable(result)
+  }
+
+  /**
+    * Marginalize factor by a variable
+    *
+    * @param index index of a variable
+    * @return marginal
+    */
+  def marginalize(index: Int): Variable = {
+    require(index >= 0 && index < states.length, "Index must be non-negative && within shape")
+    val result = Array.fill[Double](states(index))(Double.NegativeInfinity)
+    val product = states.slice(0, index).product
+    var i = 0
+    while (i < values.length) {
+      val indexInTargetState = (i / product) % states(index)
+      result(indexInTargetState) = FactorMath.logSum(result(indexInTargetState), values(i))
+      i += 1
     }
     FactorMath.logNormalize(result)
     Variable(result)

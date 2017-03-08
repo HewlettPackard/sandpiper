@@ -22,13 +22,13 @@ package sparkle.graph
 import org.scalatest.FunSuite
 import sparkle.util.LocalSparkContext
 
-class BeliefPropagationSuite extends FunSuite with LocalSparkContext {
+class BPSuite extends FunSuite with LocalSparkContext {
 
   test ("BP graph test") {
     withSpark { sc =>
       val graph = Utils.loadLibDAIToFactorGraph(sc,
         "data/factor/graph7.fg")
-      val bpGraph = BeliefPropagation.apply(graph, maxIterations = 60, eps = 1e-3)
+      val bpGraph = BP.apply(graph, maxIterations = 60, eps = 1e-3)
       val trueProbabilities = Map(
         1L -> (1.0 / 2.09 * 1.09, 1.0 / 2.09 * 1.0),
         2L -> (1.0 / 1.1 * 1.0, 1.0 / 1.1 * 0.1),
