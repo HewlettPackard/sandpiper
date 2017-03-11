@@ -163,7 +163,9 @@ object TwoStateBP extends Logging  {
     val eps = args(4).toDouble
     val vertexRDD = vertices.map { line =>
       val fields = line.split(' ')
-      (fields(0).toLong, BeliefVertex(Array(fields(1).toDouble, fields(2).toDouble), Array(0.0, 0.0), 0.0))
+      (fields(0).toLong,
+        BeliefVertex(Array(fields(1).toDouble, fields(2).toDouble), Array(fields(1).toDouble, fields(2).toDouble), 0.0)
+      )
     }
     val edgeRDD = edges.map { line =>
       val fields = line.split(' ')

@@ -107,9 +107,8 @@ object Utils extends Logging {
       val namedFactor = NamedFactor(factorId, varIds, varNumValues, nonZeroNum, indexAndValues)
       // create Variable vertex if factor has only one variable and add factor there as a prior
       if (varNum == 1) {
-        val initialValue = 1.0
         val namedVariable = new NamedVariable(varIds(0),
-          belief = Variable.fill(varNumValues(0))(initialValue),
+          belief = Variable(namedFactor.factor.cloneValues),
           prior = Variable(namedFactor.factor.cloneValues))
         factorBuffer += namedVariable
       } else {

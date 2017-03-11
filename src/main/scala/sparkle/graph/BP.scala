@@ -84,7 +84,7 @@ object BP extends Logging {
         newGraph.edges.foreachPartition(x => {})
         converged = false
       } else {
-        val numConverged = newGraph.edges.aggregate(0)((res, edge) =>
+        val numConverged = newGraph.edges.aggregate(0L)((res, edge) =>
           if (edge.attr.converged) res + 1 else res, (res1, res2) =>
             res1 + res2)
         logInfo("%d/%d edges converged".format(numConverged, numEdges))
