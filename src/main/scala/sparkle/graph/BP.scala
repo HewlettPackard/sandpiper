@@ -19,7 +19,7 @@
 
 package sparkle.graph
 
-import org.apache.spark.{Logging, SparkContext, SparkConf}
+import org.apache.spark.{Logging, SparkConf, SparkContext}
 import org.apache.spark.graphx.{Graph, TripletFields}
 
 /**
@@ -30,7 +30,7 @@ import org.apache.spark.graphx.{Graph, TripletFields}
   * For details see: https://staff.fnwi.uva.nl/j.m.mooij/libDAI/doc/fileformats.html
   *
   */
-object BeliefPropagation extends Logging {
+object BP extends Logging {
 
   /**
     * Returns graph after running the BP algorithm. Values are stored in log scale.
@@ -78,17 +78,17 @@ object BeliefPropagation extends Logging {
           val toDst = triplet.srcAttr.sendMessage(triplet.attr.toSrc)
           val diffSrc = toSrc.message.maxDiff(triplet.attr.toSrc.message)
           val diffDst = toDst.message.maxDiff(triplet.attr.toDst.message)
-          new FGEdge(toDst, toSrc, diffSrc < eps && diffDst < eps)}
+          FGEdge(toDst, toSrc, diffSrc < eps && diffDst < eps)}
         .cache()
       if (iter == 0) {
         newGraph.edges.foreachPartition(x => {})
         converged = false
       } else {
         val numConverged = newGraph.edges.aggregate(0)((res, edge) =>
-          if (edge.attr.converged) (res + 1) else res, (res1, res2) =>
+          if (edge.attr.converged) res + 1 else res, (res1, res2) =>
             res1 + res2)
         logInfo("%d/%d edges converged".format(numConverged, numEdges))
-        converged = (numConverged == numEdges)
+        converged = numConverged == numEdges
       }
       oldGraph.unpersist(false)
       iter += 1
@@ -106,7 +106,7 @@ object BeliefPropagation extends Logging {
     * @param args
     */
   def main(args: Array[String]): Unit = {
-    if (args.length < 5) {
+    if (args.length < 4) {
       logError("Program arguments: [path to input] [path to output] [iterations] [epsilon] (local)")
       throw new IllegalArgumentException("Insufficient arguments")
     }
@@ -121,7 +121,11 @@ object BeliefPropagation extends Logging {
     val numIter = args(2).toInt
     val epsilon = args(3).toDouble
     val graph = Utils.loadLibDAIToFactorGraph(sc, inputPath)
-    val beliefs = BeliefPropagation(graph, maxIterations = numIter, eps = epsilon)
+    logInfo("Graph loaded: %d vertices and %d edges".format(graph.vertices.count(), graph.edges.count()))
+    val time = System.nanoTime()
+    val beliefs = BP(graph, maxIterations = numIter, eps = epsilon)
+    logInfo("Pairwise BP estimated total time: " + (System.nanoTime() - time) / 1e9 + " s." +
+      " Saving output as " + outputPath)
     // TODO: output to a file instead
     val calculatedProbabilities = beliefs.vertices.flatMap { case(id, vertex) => vertex match {
       case n: NamedVariable => Seq((n.id, n.belief))
