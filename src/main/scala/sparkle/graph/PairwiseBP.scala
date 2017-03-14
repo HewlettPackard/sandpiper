@@ -61,7 +61,7 @@ object PairwiseBP extends Logging  {
         PVertex(newBelief, vertex.prior, maxDiff < eps)
       }.cache()
       newGraph.edges.foreachPartition(x => {})
-      val numConverged = newGraph.vertices.aggregate(0)((res, vertex) =>
+      val numConverged = newGraph.vertices.aggregate(0L)((res, vertex) =>
           if (vertex._2.converged) res + 1 else res, (res1, res2) =>
           res1 + res2)
       logInfo("%d/%d vertices converged".format(numConverged, numVertices))
@@ -114,7 +114,7 @@ object PairwiseBP extends Logging  {
       val fields = line.split(' ')
       val id = fields(0).toLong
       val prior = Variable(fields.tail.map(x => math.log(x.toDouble)))
-      val belief = Variable.fill(prior.size)(0.0)
+      val belief = Variable(prior.cloneValues)
       (id, PVertex(belief, prior))
     }
     val edgeRDD = edges.map { line =>
@@ -149,4 +149,4 @@ case class PEdge(factor: Factor, forwardMessage: Variable, reverseMessage: Varia
   * @param prior prior
   * @param converged true if converged
   */
-case class PVertex(belief: Variable, prior: Variable, converged: Boolean = false)
+case class PVertex(belief: Variable, prior: Variable, converged: Boolean = true)
