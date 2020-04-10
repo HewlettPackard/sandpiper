@@ -98,6 +98,7 @@ val beliefs = PairwiseBP(graph, maxIterations, epsilon)
    [An excellent description of BP]
 2. LibDAI file [format](https://staff.fnwi.uva.nl/j.m.mooij/libDAI/) is used with explicit factor ids: [example](https://github.com/HewlettPackard/sandpiper/blob/master/data/factor/graph7.fg).
 3. [Talk](http://conferences.oreilly.com/strata/strata-ca/public/schedule/detail/55701) by the project authors: Alexander Ulanov, Manish Marwah "Malicious site detection with large scale belief propagation", *Strata+Hadoop*, March 2017 ([slides](SandpiperStrata2017.pdf))
+4. [BigData 2017](http://marwah.org/publications/papers/bigdata2017.pdf) Alexander Ulanov, Manish Marwah, Mijung Kim, Roshan Dathathri, Carlos Zubieta, and Jun Li. Sandpiper: Scaling Probabilistic Inferencing to Large Scale Graphical Models, In IEEE Big Data , Boston, MA, Dec. 2017.
 
 ### How to contribute
 Contributors are required to sign the [Corporate Contributor License Agreement](https://github.com/HewlettPackard/sandpiper/blob/master/HPE_CCLA.txt)
